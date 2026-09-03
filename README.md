@@ -6,9 +6,10 @@ A recreation of the `fiege-dash-live.lovable.app/top5` warehouse TV board: a pub
 
 ## What's included
 
-- **`/#/top5`** — live TV board: Top 5 Pickers / Top 5 Packers, clock, banner message, full-screen mode.
-- **`/#/bottom5`** — same layout for a Bottom 5 board.
-- **`/#/units`** — the second alternating TV screen (units to pick/pack, backlog, overpicks, etc).
+- **`/#/top5`** — the public TV board. This is a single screen that auto-rotates every 30s through three views, matching the original exactly:
+  1. **Top 5** — Top 5 Pickers / Top 5 Packers, trophy icon, red/cyan, editable banner message.
+  2. **Bottom 5 / "Focus 5"** — same layout in orange, trend-down icon, fixed encouragement banner.
+  3. **Performance Board** — 6 stat tiles (Pick/Pack UPMH and units packed, both "last hour" and "cumulative"), computed live from the hourly data entered in Admin — nothing extra to fill in.
 - **`/#/admin`** — password-gated 4-step wizard:
   1. **Outbound SIC Data** — import a CSV/XLSX to auto-fill the 24-hour Pick/Pack grid, with live UPMH (units per man-hour) calculation and validation.
   2. **Units to Pick/Pack** — manual counters for board 2.
@@ -60,7 +61,11 @@ npm run build
 
 Then upload the `dist/` folder (or connect the repo for git-based deploys) and set the same three environment variables in your host's dashboard. If you move off GitHub Pages, switch `HashRouter` back to `BrowserRouter` in `src/main.tsx` and drop the `base` override in `vite.config.ts` — those two exist specifically to work around GitHub Pages having no server-side rewrites.
 
-For the actual warehouse TVs: open `/#/top5` (and `/#/units`, `/#/bottom5` if you use them) in a browser, tap **Full Screen**, and leave it running — tapping the screen keeps it awake via the Wake Lock API where supported.
+For the actual warehouse TVs: open `/#/top5` in a browser, tap **Full Screen**, and leave it running — it auto-rotates through all three views on its own, and tapping the screen keeps it awake via the Wake Lock API where supported.
+
+### The Performance Board's targets
+
+The Pick UPMH (210) and Pack UPMH (135) targets shown on the Performance Board are fixed constants in `src/components/tv/PerformanceView.tsx` — the original site doesn't expose a way to configure them either. Edit those two numbers directly if your targets change.
 
 ## Tech stack
 

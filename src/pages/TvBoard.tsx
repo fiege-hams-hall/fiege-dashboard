@@ -1,33 +1,54 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Logo } from '../components/tv/Logo'
 import { HeaderClock } from '../components/tv/HeaderClock'
 import { HeaderActions } from '../components/tv/HeaderActions'
-import { LeaderboardPanel } from '../components/tv/LeaderboardPanel'
+import { TopFiveView } from '../components/tv/TopFiveView'
+import { BottomFiveView } from '../components/tv/BottomFiveView'
+import { PerformanceView } from '../components/tv/PerformanceView'
 import { useReportDay } from '../hooks/useReportDay'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { todayISO } from '../lib/date'
-import { DEFAULT_BANNER } from '../lib/constants'
-import type { BoardType } from '../lib/types'
 
-export function TvBoard({ boardType }: { boardType: BoardType }) {
+const VIEWS = ['top5', 'bottom5', 'performance'] as const
+type View = (typeof VIEWS)[number]
+
+const ROTATE_MS = 30_000
+
+const VIEW_META: Record<View, { title: string; footerLabel: string }> = {
+  top5: { title: 'Top 5 Pickers & Packers — Fiege Live Warehouse Dashboard', footerLabel: 'Fiege · Top 5 · Rotating every 30s' },
+  bottom5: {
+    title: 'Bottom 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
+    footerLabel: 'Fiege · Focus 5 · Rotating every 30s',
+  },
+  performance: { title: 'Fiege Performance Board — Live Warehouse Dashboard', footerLabel: 'Fiege · Live · Auto-refresh 30s' },
+}
+
+/**
+ * The public TV board. This mirrors the original site's behaviour: a single
+ * screen that auto-rotates every 30s through three views — Top 5, Bottom 5
+ * ("Focus 5"), and a live performance stats board — rather than three
+ * separate pages.
+ */
+export function TvBoard() {
   const reportDate = todayISO()
-  const { day, leaderboard, loading } = useReportDay(reportDate)
+  const { day, hourly, leaderboard, loading } = useReportDay(reportDate)
   const { requestWakeLock } = useWakeLock()
+  const [viewIndex, setViewIndex] = useState(0)
+  const view = VIEWS[viewIndex]
 
   useEffect(() => {
-    document.title =
-      boardType === 'top5'
-        ? 'Top 5 Pickers & Packers — Fiege Live Warehouse Dashboard'
-        : 'Bottom 5 — Fiege Live Warehouse Dashboard'
-  }, [boardType])
+    const id = setInterval(() => {
+      setViewIndex((i) => (i + 1) % VIEWS.length)
+    }, ROTATE_MS)
+    return () => clearInterval(id)
+  }, [])
 
-  const pickers = leaderboard.filter((e) => e.board_type === boardType && e.role === 'picker')
-  const packers = leaderboard.filter((e) => e.board_type === boardType && e.role === 'packer')
-  const banner = (boardType === 'top5' ? day?.banner_message : null) || DEFAULT_BANNER
-  const label = boardType === 'top5' ? 'TOP 5' : 'BOTTOM 5'
+  useEffect(() => {
+    document.title = VIEW_META[view].title
+  }, [view])
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--bg)]" onClick={requestWakeLock}>
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] bg-radial-glow" onClick={requestWakeLock}>
       <div className="top-gradient-bar" />
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-8">
         <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[var(--panel-2)] px-5 py-4">
@@ -36,24 +57,19 @@ export function TvBoard({ boardType }: { boardType: BoardType }) {
           <HeaderActions />
         </header>
 
-        <div className="rounded-2xl border border-amber-400/50 bg-[var(--panel-2)] px-6 py-5 text-center">
-          <p className="font-display text-xl font-extrabold uppercase tracking-wide text-slate-50 md:text-2xl">
-            {banner}
-          </p>
-        </div>
-
         {loading ? (
           <div className="flex flex-1 items-center justify-center text-slate-500">Loading…</div>
+        ) : view === 'top5' ? (
+          <TopFiveView day={day} leaderboard={leaderboard} />
+        ) : view === 'bottom5' ? (
+          <BottomFiveView leaderboard={leaderboard} />
         ) : (
-          <div className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-2">
-            <LeaderboardPanel title={`${label} PICKERS`} role="picker" entries={pickers} />
-            <LeaderboardPanel title={`${label} PACKERS`} role="packer" entries={packers} />
-          </div>
+          <PerformanceView hourly={hourly} />
         )}
 
         <footer className="flex flex-col items-center gap-1 pb-2 pt-4 text-center">
           <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Fiege · {label} · Rotating every 30s
+            {VIEW_META[view].footerLabel}
           </p>
           <p className="text-[10px] uppercase tracking-widest text-slate-600">
             Tap anywhere to keep screen awake

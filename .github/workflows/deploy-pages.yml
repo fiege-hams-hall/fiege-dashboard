@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Supabase URL/anon key and the admin UI-gate password are loaded from the
+      # committed .env.production. None of these are truly secret: the anon key
+      # is a publishable key by design, and Vite inlines env vars into the built
+      # JS bundle regardless of where they come from, so a build secret would be
+      # just as visible to anyone who opens devtools. See README for the
+      # upgrade path (real Supabase Auth) if you want a non-public admin gate.
+      - run: npm run build
+        env:
+          GITHUB_PAGES: "true"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

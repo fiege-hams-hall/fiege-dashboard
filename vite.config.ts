@@ -4,6 +4,9 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages serves this as a project site at /fiege-dashboard/, so assets
+  // need that base path in production. Local dev keeps the default '/'.
+  base: process.env.GITHUB_PAGES ? '/fiege-dashboard/' : '/',
   plugins: [react(), tailwindcss()],
   server: {
     host: true,

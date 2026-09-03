@@ -1,35 +1,63 @@
-const COLOR_CLASSES: Record<'red' | 'amber' | 'green', { border: string; text: string; glow: string }> = {
-  red: { border: 'border-red-500/50', text: 'text-red-400', glow: 'glow-red' },
-  amber: { border: 'border-amber-400/50', text: 'text-amber-300', glow: 'glow-amber' },
-  green: { border: 'border-emerald-400/50', text: 'text-emerald-300', glow: 'glow-green' },
-}
+import type { ReactNode } from 'react'
 
 export function PerformanceStatTile({
   icon,
-  label,
+  title,
   value,
-  unit,
-  meta,
+  unitLabel,
+  sub,
   color,
+  live,
 }: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  unit: string
-  meta: string
-  color: 'red' | 'amber' | 'green'
+  icon: ReactNode
+  title: string
+  value: number | null
+  unitLabel: string
+  sub: string
+  color: string
+  live?: boolean
 }) {
-  const c = COLOR_CLASSES[color]
   return (
-    <div className={`rounded-2xl border bg-[var(--panel)] p-5 ${c.border} ${c.glow}`}>
-      <div className={`mb-3 flex items-center gap-2 ${c.text}`}>
-        {icon}
-        <span className="font-display text-sm font-bold uppercase tracking-wide text-slate-300">{label}</span>
+    <div
+      className="panel ambient sheen stagger-in relative flex flex-col justify-between overflow-hidden px-6 py-3"
+      style={{
+        borderColor: color,
+        borderWidth: 2,
+        borderTopWidth: 4,
+        background: `linear-gradient(135deg, var(--bg-panel) 0%, color-mix(in oklab, ${color} 14%, var(--bg-panel)) 100%)`,
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3" style={{ color }}>
+          {icon}
+          <span
+            className="text-base font-black tracking-[0.18em] uppercase lg:text-lg"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {title}
+          </span>
+        </div>
+        {live && <span className="live-dot" style={{ background: color }} />}
       </div>
-      <div className={`font-display text-4xl font-extrabold tabular-nums ${c.text}`}>{value}</div>
-      <div className="mt-2 flex items-center justify-between text-[11px] uppercase tracking-widest text-slate-500">
-        <span>{unit}</span>
-        <span>{meta}</span>
+      <div
+        className="tabular leading-none font-black"
+        style={{
+          fontSize: 'clamp(56px, 8.5vh, 110px)',
+          color,
+          textShadow: `0 0 40px color-mix(in oklab, ${color} 45%, transparent)`,
+        }}
+      >
+        {value == null ? '--' : value.toLocaleString()}
+      </div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-base font-black tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+          {unitLabel}
+        </span>
+        {sub && (
+          <span className="tabular text-base font-bold" style={{ color: 'var(--text-muted)' }}>
+            {sub}
+          </span>
+        )}
       </div>
     </div>
   )

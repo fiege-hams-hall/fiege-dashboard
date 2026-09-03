@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Maximize2, Lock } from 'lucide-react'
+import { Maximize2, Minimize2, Lock } from 'lucide-react'
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -10,20 +11,30 @@ function toggleFullscreen() {
 }
 
 export function HeaderActions() {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
   return (
-    <div className="flex shrink-0 items-center gap-3">
+    <div className="flex flex-col gap-2">
       <button
         onClick={toggleFullscreen}
-        className="flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 font-display text-sm font-bold uppercase tracking-wide text-slate-900 transition hover:bg-cyan-400"
+        className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black tracking-widest uppercase transition hover:scale-105"
+        style={{ background: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}
       >
-        <Maximize2 size={16} />
-        Full Screen
+        {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        {isFullscreen ? 'Exit' : 'Full Screen'}
       </button>
       <Link
         to="/admin"
-        className="flex items-center gap-2 rounded-full bg-red-500 px-4 py-2 font-display text-sm font-bold uppercase tracking-wide text-white transition hover:bg-red-400"
+        className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black tracking-widest uppercase transition hover:scale-105"
+        style={{ background: 'var(--fiege-red)', color: '#fff' }}
       >
-        <Lock size={16} />
+        <Lock className="h-4 w-4" />
         Admin
       </Link>
     </div>

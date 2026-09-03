@@ -1,19 +1,25 @@
-export function Logo({ subtitle }: { subtitle?: string }) {
+export function Logo({ size = 64 }: { size?: number }) {
+  const width = size * 0.92
+
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-red-400/70" style={{ clipPath: 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)' }}>
-        <span className="font-display text-xl font-bold text-red-400">F</span>
+    <div className="logo-in group flex items-center gap-3 transition-transform hover:scale-105" aria-label="Fiege">
+      <div className="logo-float relative" style={{ width, height: size }}>
+        <span className="logo-halo" aria-hidden="true" />
+        <svg width={width} height={size} viewBox="0 0 46 50" aria-label="Fiege" className="relative z-10">
+          <polygon
+            className="logo-hex"
+            points="23,2 44,13 44,37 23,48 2,37 2,13"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <polygon className="logo-chevron" points="28,15 18,25 28,35 24,35 14,25 24,15" fill="currentColor" />
+        </svg>
       </div>
-      <div>
-        <div className="font-display text-3xl font-extrabold tracking-wide">
-          FIEG<span className="text-red-400">E</span>
-        </div>
-        {subtitle && (
-          <div className="font-display text-xs font-semibold tracking-[0.3em] text-slate-400">
-            {subtitle}
-          </div>
-        )}
-      </div>
+      <span className="brand-shine text-3xl font-black leading-none" style={{ letterSpacing: '0.14em' }}>
+        FIEGE
+      </span>
     </div>
   )
 }

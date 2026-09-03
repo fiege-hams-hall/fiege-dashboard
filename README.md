@@ -6,13 +6,16 @@ A recreation of the `fiege-dash-live.lovable.app/top5` warehouse TV board: a pub
 
 ## What's included
 
-- **`/#/top5`** — the public TV board. This is a single screen that auto-rotates every 30s through three views, matching the original exactly:
+- **`/#/top5`** — the public TV board. This is a single full-bleed screen (no scrolling — every size is fluid `vh`/`clamp()`, matching the original's fixed-viewport layout) that auto-rotates every 30s through **four** views, matching the original site's exactly:
   1. **Top 5** — Top 5 Pickers / Top 5 Packers, trophy icon, red/cyan, editable banner message.
   2. **Bottom 5 / "Focus 5"** — same layout in orange, trend-down icon, fixed encouragement banner.
-  3. **Performance Board** — 6 stat tiles (Pick/Pack UPMH and units packed, both "last hour" and "cumulative"), computed live from the hourly data entered in Admin — nothing extra to fill in.
+  3. **Performance Board** — 6 stat tiles (Pick/Pack UPMH and units packed, both "last hour" and "cumulative"), computed live from the hourly data entered in Admin. Pick/Pack UPMH tiles turn green when they hit the shift target and red when they fall short, with a pulsing "live" dot on the current hour.
+  4. **Operations Board** — Units to Pick, Units to Pack, Pre Processed Failed, Backlog Orders, Overpicks — filled in via Admin step 2.
+
+  The visual system (colors, fonts, the hexagon logo mark, panel borders, the sheen/glow/entrance animations, and the 30s rotation progress bar under the footer) was rebuilt to match the original site's own CSS and component output pixel-for-pixel rather than approximated from screenshots.
 - **`/#/admin`** — password-gated 4-step wizard:
   1. **Outbound SIC Data** — import a CSV/XLSX to auto-fill the 24-hour Pick/Pack grid, with live UPMH (units per man-hour) calculation and validation.
-  2. **Units to Pick/Pack** — manual counters for board 2.
+  2. **Units to Pick/Pack** — manual counters for the Operations board (units to pick/pack, pre-processed failed, backlog orders, overpicks).
   3. **Top 5 Board** — names + units for top pickers/packers, plus the banner message.
   4. **Bottom 5 Board** — same for the bottom 5.
   - **Save & Broadcast** pushes everything live to the TV boards instantly (Supabase Realtime). **Reset for New Day** clears the current report date.
@@ -65,7 +68,7 @@ For the actual warehouse TVs: open `/#/top5` in a browser, tap **Full Screen**, 
 
 ### The Performance Board's targets
 
-The Pick UPMH (210) and Pack UPMH (135) targets shown on the Performance Board are fixed constants in `src/components/tv/PerformanceView.tsx` — the original site doesn't expose a way to configure them either. Edit those two numbers directly if your targets change.
+The Pick UPMH (210) and Pack UPMH (135) targets shown on the Performance Board are fixed constants in `src/components/tv/PerformanceView.tsx` — the original site doesn't expose a way to configure them either. Edit those two numbers directly if your targets change. Tiles turn green at/above target and red below it, same as the original; the "Units Packed · Running Total" tile stays a fixed cyan since this simplified schema doesn't track an hourly pack plan to compare it against.
 
 ## Tech stack
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 type WakeLockSentinelLike = { release: () => Promise<void> }
 
@@ -8,6 +8,7 @@ type WakeLockSentinelLike = { release: () => Promise<void> }
  */
 export function useWakeLock() {
   const sentinelRef = useRef<WakeLockSentinelLike | null>(null)
+  const [held, setHeld] = useState(false)
 
   const requestWakeLock = useCallback(async () => {
     try {
@@ -16,11 +17,12 @@ export function useWakeLock() {
       }
       if (nav.wakeLock) {
         sentinelRef.current = await nav.wakeLock.request('screen')
+        setHeld(true)
       }
     } catch {
       // Wake lock isn't available/allowed here — fail silently, it's a nice-to-have.
     }
   }, [])
 
-  return { requestWakeLock }
+  return { requestWakeLock, held }
 }

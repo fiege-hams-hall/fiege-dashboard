@@ -1,6 +1,8 @@
-import { LeaderboardPanel } from './LeaderboardPanel'
+import { LeaderboardPanel, roleColor } from './LeaderboardPanel'
 import { DEFAULT_BANNER } from '../../lib/constants'
 import type { LeaderboardEntry, ReportDay } from '../../lib/types'
+
+const BANNER_COLOR = 'var(--accent-amber)'
 
 export function TopFiveView({ day, leaderboard }: { day: ReportDay | null; leaderboard: LeaderboardEntry[] }) {
   const pickers = leaderboard.filter((e) => e.board_type === 'top5' && e.role === 'picker')
@@ -9,15 +11,29 @@ export function TopFiveView({ day, leaderboard }: { day: ReportDay | null; leade
 
   return (
     <>
-      <div className="rounded-2xl border border-amber-400/50 bg-[var(--panel-2)] px-6 py-5 text-center">
-        <p className="font-display text-xl font-extrabold uppercase tracking-wide text-slate-50 md:text-2xl">
+      <div
+        className="panel banner-pop flex items-center justify-center gap-4 overflow-hidden px-8 py-3"
+        style={{
+          borderColor: BANNER_COLOR,
+          borderWidth: 2,
+          background: `linear-gradient(90deg, color-mix(in oklab, ${BANNER_COLOR} 22%, var(--bg-panel)), var(--bg-panel) 60%, color-mix(in oklab, ${BANNER_COLOR} 22%, var(--bg-panel)))`,
+        }}
+      >
+        <span
+          className="text-center font-black tracking-widest uppercase"
+          style={{
+            fontSize: 'clamp(24px, 3.4vh, 46px)',
+            color: 'var(--text-primary)',
+            textShadow: `0 0 30px color-mix(in oklab, ${BANNER_COLOR} 40%, transparent)`,
+          }}
+        >
           {banner}
-        </p>
+        </span>
       </div>
-      <div className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-2">
-        <LeaderboardPanel title="TOP 5 PICKERS" role="picker" entries={pickers} theme="top5" />
-        <LeaderboardPanel title="TOP 5 PACKERS" role="packer" entries={packers} theme="top5" />
-      </div>
+      <section className="grid min-h-0 grid-cols-2 gap-5">
+        <LeaderboardPanel title="Top 5 Pickers" entries={pickers} theme="top5" color={roleColor('top5', 'picker')} />
+        <LeaderboardPanel title="Top 5 Packers" entries={packers} theme="top5" color={roleColor('top5', 'packer')} />
+      </section>
     </>
   )
 }

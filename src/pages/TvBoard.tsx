@@ -1,40 +1,60 @@
 import { useEffect, useState } from 'react'
-import { Logo } from '../components/tv/Logo'
-import { HeaderClock } from '../components/tv/HeaderClock'
-import { HeaderActions } from '../components/tv/HeaderActions'
+import { BoardHeader } from '../components/tv/BoardHeader'
 import { TopFiveView } from '../components/tv/TopFiveView'
 import { BottomFiveView } from '../components/tv/BottomFiveView'
 import { PerformanceView } from '../components/tv/PerformanceView'
+import { OperationsView } from '../components/tv/OperationsView'
 import { useReportDay } from '../hooks/useReportDay'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { todayISO } from '../lib/date'
 
-const VIEWS = ['top5', 'bottom5', 'performance'] as const
+const VIEWS = ['top5', 'bottom5', 'performance', 'ops'] as const
 type View = (typeof VIEWS)[number]
 
 const ROTATE_MS = 30_000
 
-const VIEW_META: Record<View, { title: string; footerLabel: string }> = {
-  top5: { title: 'Top 5 Pickers & Packers — Fiege Live Warehouse Dashboard', footerLabel: 'Fiege · Top 5 · Rotating every 30s' },
+const VIEW_META: Record<View, { title: string; footerLabel: string; rows: string; gap: string }> = {
+  top5: {
+    title: 'Top 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
+    footerLabel: 'Fiege · Top 5 · Rotating every 30s',
+    rows: '96px auto 1fr 32px',
+    gap: 'gap-4',
+  },
   bottom5: {
     title: 'Bottom 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
     footerLabel: 'Fiege · Focus 5 · Rotating every 30s',
+    rows: '96px auto 1fr 32px',
+    gap: 'gap-4',
   },
-  performance: { title: 'Fiege Performance Board — Live Warehouse Dashboard', footerLabel: 'Fiege · Live · Auto-refresh 30s' },
+  performance: {
+    title: 'Fiege Performance Board — Live Warehouse Dashboard',
+    footerLabel: 'Fiege · Live · Auto-refresh 30s',
+    rows: '96px 1fr 32px',
+    gap: 'gap-5',
+  },
+  ops: {
+    title: 'Live Warehouse Dashboard',
+    footerLabel: 'Fiege · Operations · Rotating every 30s',
+    rows: '96px 1fr 32px',
+    gap: 'gap-5',
+  },
 }
 
 /**
- * The public TV board. This mirrors the original site's behaviour: a single
- * screen that auto-rotates every 30s through three views — Top 5, Bottom 5
- * ("Focus 5"), and a live performance stats board — rather than three
- * separate pages.
+ * The public TV board. Mirrors the original site's behaviour exactly: a
+ * single full-bleed screen (no scrolling — everything is sized in vh/clamp
+ * to fit whatever display it's on) that auto-rotates every 30s through four
+ * views — Top 5, Bottom 5 ("Focus 5"), a live Performance board, and an
+ * Operations board — rather than four separate pages.
  */
 export function TvBoard() {
   const reportDate = todayISO()
   const { day, hourly, leaderboard, loading } = useReportDay(reportDate)
-  const { requestWakeLock } = useWakeLock()
+  const { requestWakeLock, held } = useWakeLock()
   const [viewIndex, setViewIndex] = useState(0)
+  const [showWakeHint, setShowWakeHint] = useState(false)
   const view = VIEWS[viewIndex]
+  const meta = VIEW_META[view]
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -44,38 +64,57 @@ export function TvBoard() {
   }, [])
 
   useEffect(() => {
-    document.title = VIEW_META[view].title
-  }, [view])
+    document.title = meta.title
+  }, [meta.title])
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowWakeHint(true), 3000)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--bg)] bg-radial-glow" onClick={requestWakeLock}>
-      <div className="top-gradient-bar" />
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[var(--panel-2)] px-5 py-4">
-          <Logo subtitle="LIVE WAREHOUSE DASHBOARD" />
-          <HeaderClock />
-          <HeaderActions />
-        </header>
+    <>
+      <div
+        // Remounting on view change replays every entrance animation (page
+        // blur-in, header/panel stagger, banner pop, progress bar) exactly
+        // like a fresh page load on the original site.
+        key={view}
+        className={`tv-bg page-enter grid w-screen overflow-hidden ${meta.gap} p-6`}
+        style={{ height: '100dvh', gridTemplateRows: meta.rows }}
+        onClick={requestWakeLock}
+      >
+        <BoardHeader />
 
         {loading ? (
-          <div className="flex flex-1 items-center justify-center text-slate-500">Loading…</div>
+          <div className="flex min-h-0 items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+            Loading…
+          </div>
         ) : view === 'top5' ? (
           <TopFiveView day={day} leaderboard={leaderboard} />
         ) : view === 'bottom5' ? (
           <BottomFiveView leaderboard={leaderboard} />
-        ) : (
+        ) : view === 'performance' ? (
           <PerformanceView hourly={hourly} />
+        ) : (
+          <OperationsView day={day} />
         )}
 
-        <footer className="flex flex-col items-center gap-1 pb-2 pt-4 text-center">
-          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            {VIEW_META[view].footerLabel}
-          </p>
-          <p className="text-[10px] uppercase tracking-widest text-slate-600">
-            Tap anywhere to keep screen awake
-          </p>
+        <footer
+          className="relative flex items-center justify-between px-2 text-sm font-bold tracking-widest uppercase"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <span>{meta.footerLabel}</span>
+          <div className="absolute -top-2 right-0 left-0 h-[3px] overflow-hidden rounded-full bg-white/5">
+            <div className="rotate-progress" />
+          </div>
         </footer>
       </div>
-    </div>
+
+      {showWakeHint && !held && (
+        <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs tracking-widest text-white/80 uppercase backdrop-blur">
+          Tap anywhere to keep screen awake
+        </div>
+      )}
+    </>
   )
 }

@@ -32,7 +32,7 @@ npm run dev
 This ships pre-configured (via `.env` for local dev, `.env.production` for the deployed build) to write into a Supabase project already set up for you, with the required tables and realtime already enabled — it should work immediately.
 
 - TV board: `http://localhost:5173/#/top5`
-- Admin: `http://localhost:5173/#/admin` (default password: `fiege-admin` — **change this**, see below)
+- Admin: `http://localhost:5173/#/admin` (password is set via `VITE_ADMIN_PASSWORD`, see below)
 
 ## Configuration
 

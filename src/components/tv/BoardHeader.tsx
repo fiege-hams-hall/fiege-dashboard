@@ -15,7 +15,7 @@ export function BoardHeader() {
       style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,2.2fr) minmax(0,1fr)' }}
     >
       <div className="z-10 flex items-center gap-4">
-        <Logo size={64} />
+        <Logo size={128} />
       </div>
       <div className="pointer-events-none min-w-0 text-center">
         <div

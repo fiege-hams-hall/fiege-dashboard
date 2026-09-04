@@ -17,25 +17,25 @@ const VIEW_META: Record<View, { title: string; footerLabel: string; rows: string
   top5: {
     title: 'Top 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
     footerLabel: 'Fiege · Top 5 · Rotating every 30s',
-    rows: '96px auto 1fr 32px',
+    rows: '168px auto 1fr 32px',
     gap: 'gap-4',
   },
   bottom5: {
     title: 'Bottom 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
     footerLabel: 'Fiege · Focus 5 · Rotating every 30s',
-    rows: '96px auto 1fr 32px',
+    rows: '168px auto 1fr 32px',
     gap: 'gap-4',
   },
   performance: {
     title: 'Fiege Performance Board — Live Warehouse Dashboard',
     footerLabel: 'Fiege · Live · Auto-refresh 30s',
-    rows: '96px 1fr 32px',
+    rows: '168px 1fr 32px',
     gap: 'gap-5',
   },
   ops: {
     title: 'Live Warehouse Dashboard',
     footerLabel: 'Fiege · Operations · Rotating every 30s',
-    rows: '96px 1fr 32px',
+    rows: '168px 1fr 32px',
     gap: 'gap-5',
   },
 }

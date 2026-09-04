@@ -68,6 +68,16 @@ export function Step1SicData({
     setImportError('')
     try {
       const result = await importSicFile(file, reportDate)
+
+      if (result.availableSheetDates) {
+        setImportError(
+          `No sheet in that workbook matches the report date (${reportDate}). Sheets found: ${result.availableSheetDates
+            .slice(0, 6)
+            .join(', ')}${result.availableSheetDates.length > 6 ? '…' : ''}. Change the report date above to match, or pick the right file.`
+        )
+        return
+      }
+
       if (result.matchedRowCount === 0) {
         setImportError(
           result.detectedHeaders.length === 0
@@ -79,7 +89,8 @@ export function Step1SicData({
         return
       }
       onHourlyChange(result.rows)
-      setFileName(`${file.name} (${result.matchedRowCount} hour${result.matchedRowCount === 1 ? '' : 's'} matched)`)
+      const sheetNote = result.sheetUsed ? `, sheet "${result.sheetUsed}"` : ''
+      setFileName(`${file.name}${sheetNote} — ${result.matchedRowCount} hour${result.matchedRowCount === 1 ? '' : 's'} matched`)
       if (result.matchedRowCount < HOUR_SLOTS_COUNT) {
         setImportError(
           `Imported ${result.matchedRowCount} of 24 hours — the rest are still blank below. Double-check the file covers the full day.`

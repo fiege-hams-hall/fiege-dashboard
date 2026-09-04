@@ -3,7 +3,10 @@ import { Upload } from 'lucide-react'
 import type { HourlyRow } from '../../lib/types'
 import { computeRate, sum } from '../../lib/upmh'
 import { importSicFile } from '../../lib/importSic'
+import { HOUR_SLOTS } from '../../lib/constants'
 import { NumberCell } from './NumberCell'
+
+const HOUR_SLOTS_COUNT = HOUR_SLOTS.length
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
@@ -64,9 +67,24 @@ export function Step1SicData({
   async function handleFile(file: File) {
     setImportError('')
     try {
-      const rows = await importSicFile(file, reportDate)
-      onHourlyChange(rows)
-      setFileName(file.name)
+      const result = await importSicFile(file, reportDate)
+      if (result.matchedRowCount === 0) {
+        setImportError(
+          result.detectedHeaders.length === 0
+            ? `Couldn't match any columns in that file to Hour / Pick / Pack fields. Columns found: ${
+                result.unrecognizedHeaders.slice(0, 8).join(', ') || '(none)'
+              }. Rename them (e.g. "Hour", "Pick Units", "Pick Hours", "Pack Units", "Pack Hours") or enter the data in the table below.`
+            : `Found recognizable columns (${result.detectedHeaders.join(', ')}) but no rows matched an hour slot — check the Hour column's format. Nothing was imported.`
+        )
+        return
+      }
+      onHourlyChange(result.rows)
+      setFileName(`${file.name} (${result.matchedRowCount} hour${result.matchedRowCount === 1 ? '' : 's'} matched)`)
+      if (result.matchedRowCount < HOUR_SLOTS_COUNT) {
+        setImportError(
+          `Imported ${result.matchedRowCount} of 24 hours — the rest are still blank below. Double-check the file covers the full day.`
+        )
+      }
     } catch {
       setImportError('Could not read that file. Expected a CSV/XLSX with Hour, Pick/Pack Plan, Units and Hours columns.')
     }

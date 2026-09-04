@@ -30,23 +30,35 @@ function RoleGroup({
       <div className="mt-3 flex flex-col gap-2.5">
         {[1, 2, 3, 4, 5].map((rank) => {
           const entry = byRank.get(rank)
+          const name = entry?.employee_name ?? ''
+          const looksLikeUnits = name.trim() !== '' && /^\d+$/.test(name.trim())
           return (
-            <div key={rank} className="flex items-center gap-3">
-              <span className="w-4 shrink-0 font-display text-sm font-bold text-slate-500">{rank}</span>
-              <input
-                type="text"
-                placeholder="Employee name"
-                value={entry?.employee_name ?? ''}
-                onChange={(e) => onChange(rank, { employee_name: e.target.value })}
-                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[var(--panel)] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
-              />
-              <input
-                type="number"
-                placeholder="Units"
-                value={entry?.units ?? ''}
-                onChange={(e) => onChange(rank, { units: e.target.value === '' ? null : Number(e.target.value) })}
-                className="w-24 shrink-0 rounded-lg border border-white/10 bg-[var(--panel)] px-3 py-2 text-right text-sm text-slate-100 outline-none focus:border-cyan-400"
-              />
+            <div key={rank} className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <span className="w-4 shrink-0 font-display text-sm font-bold text-slate-500">{rank}</span>
+                <input
+                  type="text"
+                  placeholder="OP / FOP ID (e.g. FOP_10105)"
+                  value={name}
+                  onChange={(e) => onChange(rank, { employee_name: e.target.value })}
+                  className={`min-w-0 flex-1 rounded-lg border bg-[var(--panel)] px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400 ${
+                    looksLikeUnits ? 'border-amber-500/60' : 'border-white/10'
+                  }`}
+                />
+                <input
+                  type="number"
+                  placeholder="Units"
+                  value={entry?.units ?? ''}
+                  onChange={(e) => onChange(rank, { units: e.target.value === '' ? null : Number(e.target.value) })}
+                  className="w-24 shrink-0 rounded-lg border border-white/10 bg-[var(--panel)] px-3 py-2 text-right text-sm text-slate-100 outline-none focus:border-cyan-400"
+                />
+              </div>
+              {looksLikeUnits && (
+                <p className="pl-7 text-xs text-amber-400">
+                  ⚠ That looks like a units count, not an ID — did you mean to put "{name.trim()}" in the Units box
+                  instead, and enter the OP/FOP ID here?
+                </p>
+              )}
             </div>
           )
         })}

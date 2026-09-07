@@ -36,17 +36,26 @@ export function useReportDay(reportDate: string): ReportDayData {
     setLoading(true)
     load()
 
+    // A single admin save can touch 45+ rows across these three tables,
+    // firing that many separate postgres_changes events — debounce them
+    // into one reload instead of re-fetching everything per row.
+    let debounceId: ReturnType<typeof setTimeout> | null = null
+    const scheduleReload = () => {
+      if (debounceId) clearTimeout(debounceId)
+      debounceId = setTimeout(load, 400)
+    }
+
     const channel = supabase
       .channel(`report-day-${reportDate}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'fiege_report_days', filter: `report_date=eq.${reportDate}` },
-        () => load()
+        scheduleReload
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'fiege_hourly_data', filter: `report_date=eq.${reportDate}` },
-        () => load()
+        scheduleReload
       )
       .on(
         'postgres_changes',
@@ -56,11 +65,29 @@ export function useReportDay(reportDate: string): ReportDayData {
           table: 'fiege_leaderboard_entries',
           filter: `report_date=eq.${reportDate}`,
         },
-        () => load()
+        scheduleReload
       )
       .subscribe()
 
+    // Safety net: on an always-on shop-floor screen, the realtime socket can
+    // drop silently (network blip, the display waking from sleep, the tab
+    // being throttled while idle) without the board noticing. A slow poll
+    // means it self-heals within a minute even if the push channel dies.
+    const pollId = setInterval(load, 60_000)
+
+    // Catch up immediately rather than waiting for the next poll tick when
+    // the screen/tab becomes visible again or the network comes back.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', load)
+
     return () => {
+      if (debounceId) clearTimeout(debounceId)
+      clearInterval(pollId)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', load)
       supabase.removeChannel(channel)
     }
   }, [reportDate, load])

@@ -63,6 +63,15 @@ export function TvBoard() {
     return () => clearInterval(id)
   }, [])
 
+  // Belt-and-braces for an always-on shop-floor screen: a full reload every
+  // few hours clears out any accumulated state and forces a clean
+  // reconnect, so nothing can wander off and stay stuck between the times
+  // someone happens to walk past and notice.
+  useEffect(() => {
+    const id = setInterval(() => window.location.reload(), 4 * 60 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+
   useEffect(() => {
     document.title = meta.title
   }, [meta.title])

@@ -11,30 +11,30 @@ import { todayISO } from '../lib/date'
 const VIEWS = ['top5', 'bottom5', 'performance', 'ops'] as const
 type View = (typeof VIEWS)[number]
 
-const ROTATE_MS = 30_000
+const ROTATE_MS = 15_000
 
 const VIEW_META: Record<View, { title: string; footerLabel: string; rows: string; gap: string }> = {
   top5: {
     title: 'Top 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
-    footerLabel: 'Fiege · Top 5 · Rotating every 30s',
+    footerLabel: 'Fiege · Top 5 · Rotating every 15s',
     rows: '168px auto 1fr 32px',
     gap: 'gap-4',
   },
   bottom5: {
     title: 'Bottom 5 Pickers & Packers — Fiege Live Warehouse Dashboard',
-    footerLabel: 'Fiege · Focus 5 · Rotating every 30s',
+    footerLabel: 'Fiege · Focus 5 · Rotating every 15s',
     rows: '168px auto 1fr 32px',
     gap: 'gap-4',
   },
   performance: {
     title: 'Fiege Performance Board — Live Warehouse Dashboard',
-    footerLabel: 'Fiege · Live · Auto-refresh 30s',
+    footerLabel: 'Fiege · Live · Auto-refresh 15s',
     rows: '168px 1fr 32px',
     gap: 'gap-5',
   },
   ops: {
     title: 'Live Warehouse Dashboard',
-    footerLabel: 'Fiege · Operations · Rotating every 30s',
+    footerLabel: 'Fiege · Operations · Rotating every 15s',
     rows: '168px 1fr 32px',
     gap: 'gap-5',
   },
@@ -43,7 +43,7 @@ const VIEW_META: Record<View, { title: string; footerLabel: string; rows: string
 /**
  * The public TV board. Mirrors the original site's behaviour exactly: a
  * single full-bleed screen (no scrolling — everything is sized in vh/clamp
- * to fit whatever display it's on) that auto-rotates every 30s through four
+ * to fit whatever display it's on) that auto-rotates every 15s through four
  * views — Top 5, Bottom 5 ("Focus 5"), a live Performance board, and an
  * Operations board — rather than four separate pages.
  */

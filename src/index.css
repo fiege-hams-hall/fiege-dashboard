@@ -145,7 +145,7 @@ body {
   animation: 1.4s ease-in-out infinite live-pulse;
 }
 
-/* 30s rotation progress bar shown above each board's footer */
+/* 15s rotation progress bar shown above each board's footer */
 @keyframes rotate-progress {
   0% { transform: scaleX(0); }
   100% { transform: scaleX(1); }
@@ -155,7 +155,7 @@ body {
   background: linear-gradient(90deg, var(--fiege-red), var(--accent-cyan));
   width: 100%;
   height: 100%;
-  animation: 30s linear both rotate-progress;
+  animation: 15s linear both rotate-progress;
 }
 
 /* ---------- Logo ---------- */

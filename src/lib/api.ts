@@ -62,6 +62,23 @@ export async function fetchFullReportDay(reportDate: string): Promise<FullReport
   return { day, hourly, leaderboard }
 }
 
+/**
+ * Just the leaderboard rows for one date — used by the "All Boards" overview,
+ * which lets admins browse any past date without loading/affecting the
+ * SIC/units data the rest of the Admin panel is currently editing.
+ */
+export async function fetchLeaderboardEntries(reportDate: string): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase
+    .from('fiege_leaderboard_entries')
+    .select('*')
+    .eq('report_date', reportDate)
+    .order('board_type')
+    .order('role')
+    .order('rank')
+  if (error) throw error
+  return (data as LeaderboardEntry[] | null) ?? []
+}
+
 export async function saveAndBroadcast(data: FullReportDay): Promise<void> {
   const { day, hourly, leaderboard } = data
 

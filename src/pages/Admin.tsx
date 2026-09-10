@@ -6,6 +6,7 @@ import { StepTabs } from '../components/admin/StepTabs'
 import { Step1SicData } from '../components/admin/Step1SicData'
 import { Step2Units } from '../components/admin/Step2Units'
 import { LeaderboardEditor } from '../components/admin/LeaderboardEditor'
+import { AllBoardsOverview } from '../components/admin/AllBoardsOverview'
 import { AdminFooter } from '../components/admin/AdminFooter'
 import { fetchFullReportDay, resetDay, saveAndBroadcast, type FullReportDay } from '../lib/api'
 import { todayISO } from '../lib/date'
@@ -140,6 +141,7 @@ function AdminPanel() {
             onEntryChange={(role, rank, patch) => updateEntry('bottom5', role, rank, patch)}
           />
         )}
+        {step === 5 && <AllBoardsOverview initialDate={reportDate} />}
 
         <AdminFooter
           saving={saving}

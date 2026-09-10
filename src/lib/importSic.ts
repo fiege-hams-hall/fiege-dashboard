@@ -32,7 +32,7 @@ function emptyGrid(reportDate: string): Map<number, HourlyRow> {
   return grid
 }
 
-function toNumber(v: unknown): number | null {
+export function toNumber(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null
   const n = typeof v === 'number' ? v : Number(String(v).replace(/,/g, ''))
   return Number.isFinite(n) ? n : null
@@ -127,7 +127,7 @@ const HEADER_MAP: Record<string, keyof HourlyRow> = {
   packhr: 'pack_hours',
 }
 
-function normalizeHeader(h: string): string {
+export function normalizeHeader(h: string): string {
   return h.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 

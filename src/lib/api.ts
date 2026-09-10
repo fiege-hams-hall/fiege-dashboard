@@ -79,6 +79,21 @@ export async function fetchLeaderboardEntries(reportDate: string): Promise<Leade
   return (data as LeaderboardEntry[] | null) ?? []
 }
 
+/** Same as above but for every date in [startDate, endDate] inclusive — used by the "All Boards" overview's monthly view. */
+export async function fetchLeaderboardEntriesRange(startDate: string, endDate: string): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase
+    .from('fiege_leaderboard_entries')
+    .select('*')
+    .gte('report_date', startDate)
+    .lte('report_date', endDate)
+    .order('report_date')
+    .order('board_type')
+    .order('role')
+    .order('rank')
+  if (error) throw error
+  return (data as LeaderboardEntry[] | null) ?? []
+}
+
 export async function saveAndBroadcast(data: FullReportDay): Promise<void> {
   const { day, hourly, leaderboard } = data
 

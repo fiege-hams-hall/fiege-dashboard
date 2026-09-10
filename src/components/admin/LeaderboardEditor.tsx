@@ -26,24 +26,43 @@ function RoleGroup({
   async function handleFile(file: File) {
     setImportError('')
     try {
-      const result = await importSectionFile(file)
+      const result = await importSectionFile(file, boardType)
       if (result.matchedCount === 0) {
         setImportError(
           result.detectedHeaders.length === 0
             ? `Couldn't match any columns. Columns found: ${
                 result.unrecognizedHeaders.slice(0, 8).join(', ') || '(none)'
-              }. Name them e.g. "Name" and "Units" (Rank is optional).`
+              }. Name them e.g. "Name" and "Units" (Rank is optional) — or upload the raw daily export.`
             : `Found columns (${result.detectedHeaders.join(', ')}) but no usable rows — check the Name column has values.`
         )
         return
       }
+      if (result.aggregatedFromRaw) {
+        // Raw export replaces the whole section — clear stale ranks first
+        // so nothing left over from a previous import/manual entry lingers.
+        for (let rank = 1; rank <= 5; rank++) onChange(rank, { employee_name: '', units: null })
+      }
       result.rows.forEach((row) => onChange(row.rank, { employee_name: row.name, units: row.units }))
-      setFileName(`${file.name} — ${result.matchedCount} of 5 matched`)
-      if (result.matchedCount < 5) {
-        setImportError(`Imported ${result.matchedCount} of 5 — the rest are unchanged below.`)
+
+      if (result.aggregatedFromRaw) {
+        setFileName(
+          `${file.name} — summed ${result.rowsScanned} rows, ${result.operatorsFound} operators, ${result.matchedCount} of 5 shown`
+        )
+        if (result.matchedCount < 5) {
+          setImportError(
+            `Only ${result.operatorsFound} eligible operators found (after excluding TOB/Admin), so ${
+              5 - result.matchedCount
+            } slot(s) are left blank rather than repeating someone already on the other board.`
+          )
+        }
+      } else {
+        setFileName(`${file.name} — ${result.matchedCount} of 5 matched`)
+        if (result.matchedCount < 5) {
+          setImportError(`Imported ${result.matchedCount} of 5 — the rest are unchanged below.`)
+        }
       }
     } catch {
-      setImportError('Could not read that file. Expected a CSV/XLSX with Name and Units columns.')
+      setImportError('Could not read that file. Expected a CSV/XLSX with Name and Units columns, or the raw daily export.')
     }
   }
 

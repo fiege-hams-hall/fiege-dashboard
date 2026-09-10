@@ -1,3 +1,6 @@
+import { useRef, useState } from 'react'
+import { Upload } from 'lucide-react'
+import { importSectionFile } from '../../lib/importLeaderboardSection'
 import type { BoardType, LeaderboardEntry, Role } from '../../lib/types'
 
 function RoleGroup({
@@ -16,6 +19,34 @@ function RoleGroup({
   onChange: (rank: number, patch: Partial<LeaderboardEntry>) => void
 }) {
   const byRank = new Map(entries.filter((e) => e.role === role && e.board_type === boardType).map((e) => [e.rank, e]))
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [fileName, setFileName] = useState('')
+  const [importError, setImportError] = useState('')
+
+  async function handleFile(file: File) {
+    setImportError('')
+    try {
+      const result = await importSectionFile(file)
+      if (result.matchedCount === 0) {
+        setImportError(
+          result.detectedHeaders.length === 0
+            ? `Couldn't match any columns. Columns found: ${
+                result.unrecognizedHeaders.slice(0, 8).join(', ') || '(none)'
+              }. Name them e.g. "Name" and "Units" (Rank is optional).`
+            : `Found columns (${result.detectedHeaders.join(', ')}) but no usable rows — check the Name column has values.`
+        )
+        return
+      }
+      result.rows.forEach((row) => onChange(row.rank, { employee_name: row.name, units: row.units }))
+      setFileName(`${file.name} — ${result.matchedCount} of 5 matched`)
+      if (result.matchedCount < 5) {
+        setImportError(`Imported ${result.matchedCount} of 5 — the rest are unchanged below.`)
+      }
+    } catch {
+      setImportError('Could not read that file. Expected a CSV/XLSX with Name and Units columns.')
+    }
+  }
+
   return (
     <div
       className={`rounded-2xl border p-4 ${accent === 'red' ? 'border-red-500/40' : 'border-cyan-400/40'}`}
@@ -27,6 +58,31 @@ function RoleGroup({
       >
         {title}
       </h4>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 rounded-lg bg-red-500 px-3 py-1.5 font-display text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-400"
+        >
+          <Upload size={14} />
+          Choose File
+        </button>
+        <span className="text-xs text-slate-400">{fileName || 'No file chosen'}</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) handleFile(f)
+            e.target.value = ''
+          }}
+        />
+      </div>
+      {importError && <p className="mt-2 text-xs text-red-400">{importError}</p>}
+
       <div className="mt-3 flex flex-col gap-2.5">
         {[1, 2, 3, 4, 5].map((rank) => {
           const entry = byRank.get(rank)

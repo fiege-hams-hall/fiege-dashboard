@@ -1,4 +1,4 @@
-import { formatDateBadge } from '../../lib/date'
+import { useState } from 'react'
 
 // Matches the physical whiteboard's rolling hour cycle (starts at 10-11,
 // wraps through midnight, ends at 09-10) rather than the 06:00 start used
@@ -10,11 +10,16 @@ const TRACKING_HOURS: string[] = Array.from({ length: 24 }, (_, i) => {
   return `${pad(start)}-${pad(end)}`
 })
 
-function InfoField({ label }: { label: string }) {
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}:</span>
-      <span className="min-h-[1.25rem] w-16 rounded border border-dashed border-white/15" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-20 rounded border border-white/15 bg-transparent px-1.5 py-1 text-xs text-slate-100 outline-none focus:border-cyan-400"
+      />
     </div>
   )
 }
@@ -73,36 +78,67 @@ function BlankCell() {
 /**
  * A digital replica of the shop-floor "Daily Tracking" whiteboard (Pack /
  * Pick / Rebin ops, units and UPH per hour, plus Admin+TL and Productive
- * Hours), styled with the dashboard's own colors. Every data cell is
- * intentionally blank for now — this is the layout only. Once we know
- * which of these should pull from existing Admin data (e.g. Pack/Pick
- * Units from the Outbound SIC hourly figures) we can wire those cells up
- * instead of leaving them for manual entry. Sized compactly (small type,
- * tight row height, no forced min-width) so the whole board fits on
- * screen without a scrollbar.
+ * Hours), styled with the dashboard's own colors. The info bar (owner,
+ * targets, shift) is editable so it can be filled in each shift; the hourly
+ * grid cells are intentionally still blank — this is the layout only. Once
+ * we know which of those should pull from existing Admin data (e.g.
+ * Pack/Pick Units from the Outbound SIC hourly figures) we can wire those
+ * cells up instead of leaving them for manual entry. Sized compactly so the
+ * whole board fits on screen without a scrollbar.
+ *
+ * Note: the info bar fields below are local to this tab for now (not yet
+ * saved to the database), so they'll reset on page refresh or if you switch
+ * report dates and back.
  */
-export function DailyTrackingBoard({ reportDate }: { reportDate: string }) {
+export function DailyTrackingBoard({
+  reportDate,
+  onReportDateChange,
+}: {
+  reportDate: string
+  onReportDateChange: (v: string) => void
+}) {
+  const [ownerAm, setOwnerAm] = useState('')
+  const [ownerPm, setOwnerPm] = useState('')
+  const [targetAm, setTargetAm] = useState('')
+  const [targetPm, setTargetPm] = useState('')
+  const [shift, setShift] = useState('')
+
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
         <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">Daily Tracking</h3>
         <p className="mt-1 text-sm text-slate-400">
-          Replica of the shop-floor tracking board. Currently a blank layout — cells will populate from Admin data
+          Replica of the shop-floor tracking board. The grid below is still blank — it will populate from Admin data
           once that's wired up.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-[var(--panel)] px-4 py-2.5">
           <div className="flex items-center gap-1.5">
             <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">Date:</span>
-            <span className="font-display text-sm font-bold text-slate-100">
-              {formatDateBadge(new Date(`${reportDate}T00:00:00`))}
-            </span>
+            <input
+              type="date"
+              value={reportDate}
+              onChange={(e) => onReportDateChange(e.target.value)}
+              className="rounded border border-white/15 bg-transparent px-1.5 py-1 text-xs font-bold text-slate-100 outline-none focus:border-cyan-400"
+            />
           </div>
-          <InfoField label="Owner AM" />
-          <InfoField label="Owner PM" />
-          <InfoField label="Target AM" />
-          <InfoField label="Target PM" />
-          <InfoField label="Shift" />
+          <TextField label="Owner AM" value={ownerAm} onChange={setOwnerAm} />
+          <TextField label="Owner PM" value={ownerPm} onChange={setOwnerPm} />
+          <TextField label="Target AM" value={targetAm} onChange={setTargetAm} />
+          <TextField label="Target PM" value={targetPm} onChange={setTargetPm} />
+          <div className="flex items-center gap-1.5">
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">Shift:</span>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value)}
+              className="rounded border border-white/15 bg-[var(--panel-2)] px-1.5 py-1 text-xs text-slate-100 outline-none focus:border-cyan-400"
+            >
+              <option value="">—</option>
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+              <option value="NS">NS</option>
+            </select>
+          </div>
         </div>
       </div>
 

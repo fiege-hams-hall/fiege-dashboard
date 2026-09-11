@@ -4,6 +4,7 @@ const STEPS = [
   { id: 3, label: 'Top 5 Board' },
   { id: 4, label: 'Bottom 5 Board' },
   { id: 5, label: 'All Boards' },
+  { id: 6, label: 'Daily Tracking' },
 ]
 
 export function StepTabs({ step, onStepChange }: { step: number; onStepChange: (s: number) => void }) {

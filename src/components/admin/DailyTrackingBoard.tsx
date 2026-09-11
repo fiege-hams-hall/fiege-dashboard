@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { computeRate } from '../../lib/upmh'
+import type { HourlyRow } from '../../lib/types'
 
 // Matches the physical whiteboard's rolling hour cycle (starts at 10-11,
 // wraps through midnight, ends at 09-10) rather than the 06:00 start used
@@ -75,41 +77,94 @@ function BlankCell() {
   return <td className="border border-white/10 bg-[var(--panel-2)] px-1 py-0.5" />
 }
 
+function ComputedCell({ value }: { value: number | null | undefined }) {
+  return (
+    <td className="border border-white/10 bg-[var(--panel-2)] px-1 py-0.5 text-center text-[10px] tabular-nums text-slate-100">
+      {value ?? '—'}
+    </td>
+  )
+}
+
+// The Outbound SIC Data step's 24 hourly rows start at 06:00 (hour_index 0
+// = "06:00-07:00"), while this board's rolling day starts at 10-11. Row j
+// here lines up with SIC hour_index (j + 4) % 24 — e.g. j=0 ("10-11") is
+// SIC index 4 ("10:00-11:00").
+const SIC_HOUR_OFFSET = 4
+
+function sicRowFor(hourly: HourlyRow[], trackingRowIndex: number): HourlyRow | undefined {
+  return hourly[(trackingRowIndex + SIC_HOUR_OFFSET) % 24]
+}
+
+function EditableCell({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <td className="border border-white/10 bg-[var(--panel-2)] p-0">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-transparent px-1 py-0.5 text-center text-[10px] text-slate-100 outline-none focus:bg-white/5 focus:ring-1 focus:ring-cyan-400"
+      />
+    </td>
+  )
+}
+
+interface TrackingRowState {
+  spiders: string
+  rebinOps: string
+  rebinUnits: string
+  rebinUph: string
+  adminTl: string
+  productiveHours: string
+}
+
+function emptyTrackingRow(): TrackingRowState {
+  return { spiders: '', rebinOps: '', rebinUnits: '', rebinUph: '', adminTl: '', productiveHours: '' }
+}
+
 /**
  * A digital replica of the shop-floor "Daily Tracking" whiteboard (Pack /
  * Pick / Rebin ops, units and UPH per hour, plus Admin+TL and Productive
- * Hours), styled with the dashboard's own colors. The info bar (owner,
- * targets, shift) is editable so it can be filled in each shift; the hourly
- * grid cells are intentionally still blank — this is the layout only. Once
- * we know which of those should pull from existing Admin data (e.g.
- * Pack/Pick Units from the Outbound SIC hourly figures) we can wire those
- * cells up instead of leaving them for manual entry. Sized compactly so the
- * whole board fits on screen without a scrollbar.
+ * Hours), styled with the dashboard's own colors.
  *
- * Note: the info bar fields below are local to this tab for now (not yet
- * saved to the database), so they'll reset on page refresh or if you switch
- * report dates and back.
+ * Pick Ops, Pick Units, Pack Units and Pick UPH are read-only — they're
+ * pulled straight from the matching hour's Outbound SIC Data (Pick Ops =
+ * Pick Hrs, Pick/Pack Units = the SIC units, Pick UPH = the same UPH SIC
+ * computes). Pack Ops and Pack UPH have no SIC equivalent yet, so they stay
+ * blank. The info bar (owner, targets, shift), Spiders, all of Rebin, and
+ * Total (Admin+TL / Productive Hrs) are open for manual entry.
+ *
+ * Note: the manually-entered fields below are local to this tab for now
+ * (not yet saved to the database), so they'll reset on page refresh or if
+ * you switch report dates and back. The SIC-sourced cells always reflect
+ * whatever is currently saved on the Outbound SIC Data step.
  */
 export function DailyTrackingBoard({
   reportDate,
   onReportDateChange,
+  hourly,
 }: {
   reportDate: string
   onReportDateChange: (v: string) => void
+  hourly: HourlyRow[]
 }) {
   const [ownerAm, setOwnerAm] = useState('')
   const [ownerPm, setOwnerPm] = useState('')
   const [targetAm, setTargetAm] = useState('')
   const [targetPm, setTargetPm] = useState('')
   const [shift, setShift] = useState('')
+  const [rows, setRows] = useState<TrackingRowState[]>(() => TRACKING_HOURS.map(() => emptyTrackingRow()))
+
+  function updateRow(index: number, patch: Partial<TrackingRowState>) {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+  }
 
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
         <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">Daily Tracking</h3>
         <p className="mt-1 text-sm text-slate-400">
-          Replica of the shop-floor tracking board. The grid below is still blank — it will populate from Admin data
-          once that's wired up.
+          Replica of the shop-floor tracking board. Pick Ops/Units/UPH and Pack Units pull from Outbound SIC Data.
+          Spiders, Rebin and Total are open for manual entry.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-[var(--panel)] px-4 py-2.5">
@@ -191,25 +246,36 @@ export function DailyTrackingBoard({
             </tr>
           </thead>
           <tbody>
-            {TRACKING_HOURS.map((slot) => (
-              <tr key={slot}>
-                <td className="border border-white/10 bg-slate-700/40 px-1 py-0.5 font-display text-[10px] font-bold text-slate-200">
-                  {slot}
-                </td>
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-                <BlankCell />
-              </tr>
-            ))}
+            {TRACKING_HOURS.map((slot, i) => {
+              const row = rows[i]
+              const sic = sicRowFor(hourly, i)
+              const pickOps = sic?.pick_hours ?? null
+              const pickUnits = sic?.pick_units ?? null
+              const packUnits = sic?.pack_units ?? null
+              const pickUph = computeRate(sic?.pick_units, sic?.pick_hours)
+              return (
+                <tr key={slot}>
+                  <td className="border border-white/10 bg-slate-700/40 px-1 py-0.5 font-display text-[10px] font-bold text-slate-200">
+                    {slot}
+                  </td>
+                  <BlankCell />
+                  <EditableCell value={row.spiders} onChange={(v) => updateRow(i, { spiders: v })} />
+                  <ComputedCell value={packUnits} />
+                  <BlankCell />
+
+                  <ComputedCell value={pickOps} />
+                  <ComputedCell value={pickUnits} />
+                  <ComputedCell value={pickUph} />
+
+                  <EditableCell value={row.rebinOps} onChange={(v) => updateRow(i, { rebinOps: v })} />
+                  <EditableCell value={row.rebinUnits} onChange={(v) => updateRow(i, { rebinUnits: v })} />
+                  <EditableCell value={row.rebinUph} onChange={(v) => updateRow(i, { rebinUph: v })} />
+
+                  <EditableCell value={row.adminTl} onChange={(v) => updateRow(i, { adminTl: v })} />
+                  <EditableCell value={row.productiveHours} onChange={(v) => updateRow(i, { productiveHours: v })} />
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

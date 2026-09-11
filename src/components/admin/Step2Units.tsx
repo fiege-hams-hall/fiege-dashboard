@@ -32,7 +32,6 @@ export function Step2Units({
   return (
     <div className="rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
       <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">Units to Pick / Pack (Board 2)</h3>
-      <p className="mt-1 text-sm text-slate-400">These populate the alternating second TV screen.</p>
       <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         <Field label="Units to Pick" value={day.units_to_pick} onChange={(v) => onChange({ units_to_pick: v })} />
         <Field label="Units to Pack" value={day.units_to_pack} onChange={(v) => onChange({ units_to_pack: v })} />

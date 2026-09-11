@@ -105,9 +105,6 @@ export function Step1SicData({
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
         <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">Import CSV / Excel</h3>
-        <p className="mt-1 text-sm text-slate-400">
-          Auto-fills hourly Pick/Pack data. Operations and leaderboard are manual.
-        </p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <button
             type="button"

@@ -143,7 +143,9 @@ function AdminPanel() {
           />
         )}
         {step === 5 && <AllBoardsOverview initialDate={reportDate} />}
-        {step === 6 && <DailyTrackingBoard reportDate={reportDate} onReportDateChange={setReportDate} />}
+        {step === 6 && (
+          <DailyTrackingBoard reportDate={reportDate} onReportDateChange={setReportDate} hourly={data.hourly} />
+        )}
 
         <AdminFooter
           saving={saving}

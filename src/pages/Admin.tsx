@@ -7,6 +7,7 @@ import { Step1SicData } from '../components/admin/Step1SicData'
 import { Step2Units } from '../components/admin/Step2Units'
 import { LeaderboardEditor } from '../components/admin/LeaderboardEditor'
 import { AllBoardsOverview } from '../components/admin/AllBoardsOverview'
+import { DailyTrackingBoard } from '../components/admin/DailyTrackingBoard'
 import { AdminFooter } from '../components/admin/AdminFooter'
 import { fetchFullReportDay, resetDay, saveAndBroadcast, type FullReportDay } from '../lib/api'
 import { todayISO } from '../lib/date'
@@ -142,6 +143,7 @@ function AdminPanel() {
           />
         )}
         {step === 5 && <AllBoardsOverview initialDate={reportDate} />}
+        {step === 6 && <DailyTrackingBoard reportDate={reportDate} />}
 
         <AdminFooter
           saving={saving}

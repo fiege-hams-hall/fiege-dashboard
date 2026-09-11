@@ -162,10 +162,6 @@ export function DailyTrackingBoard({
     <div className="flex flex-col gap-5">
       <div className="rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
         <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">Daily Tracking</h3>
-        <p className="mt-1 text-sm text-slate-400">
-          Replica of the shop-floor tracking board. Pick Ops/Units/UPH and Pack Units pull from Outbound SIC Data.
-          Spiders, Rebin and Total are open for manual entry.
-        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-[var(--panel)] px-4 py-2.5">
           <div className="flex items-center gap-1.5">

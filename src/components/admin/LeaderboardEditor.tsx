@@ -160,7 +160,6 @@ export function LeaderboardEditor({
   return (
     <div className="rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
       <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">{title}</h3>
-      <p className="mt-1 text-sm text-slate-400">Best (or most improved) performers of the day.</p>
 
       {onBannerChange && (
         <div className="mt-4">

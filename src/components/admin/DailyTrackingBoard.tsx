@@ -73,10 +73,6 @@ function SubHeaderCell({ label, accent }: { label: string; accent: 'cyan' | 'red
   )
 }
 
-function BlankCell() {
-  return <td className="border border-white/10 bg-[var(--panel-2)] px-1 py-0.5" />
-}
-
 function ComputedCell({ value }: { value: number | null | undefined }) {
   return (
     <td className="border border-white/10 bg-[var(--panel-2)] px-1 py-0.5 text-center text-[10px] tabular-nums text-slate-100">
@@ -126,11 +122,10 @@ function emptyTrackingRow(): TrackingRowState {
  * Pick / Rebin ops, units and UPH per hour, plus Admin+TL and Productive
  * Hours), styled with the dashboard's own colors.
  *
- * Pick Ops, Pick Units, Pack Units and Pick UPH are read-only — they're
- * pulled straight from the matching hour's Outbound SIC Data (Pick Ops =
- * Pick Hrs, Pick/Pack Units = the SIC units, Pick UPH = the same UPH SIC
- * computes). Pack Ops and Pack UPH have no SIC equivalent yet, so they stay
- * blank. The info bar (owner, targets, shift), Spiders, all of Rebin, and
+ * Pack Ops, Pack Units, Pack UPH, Pick Ops, Pick Units and Pick UPH are all
+ * read-only — they're pulled straight from the matching hour's Outbound SIC
+ * Data (Ops = Pack/Pick Hrs, Units = the SIC units, UPH = the same UPH SIC
+ * computes). The info bar (owner, targets, shift), Spiders, all of Rebin, and
  * Total (Admin+TL / Productive Hrs) are open for manual entry.
  *
  * Note: the manually-entered fields below are local to this tab for now
@@ -245,19 +240,21 @@ export function DailyTrackingBoard({
             {TRACKING_HOURS.map((slot, i) => {
               const row = rows[i]
               const sic = sicRowFor(hourly, i)
+              const packOps = sic?.pack_hours ?? null
               const pickOps = sic?.pick_hours ?? null
               const pickUnits = sic?.pick_units ?? null
               const packUnits = sic?.pack_units ?? null
               const pickUph = computeRate(sic?.pick_units, sic?.pick_hours)
+              const packUph = computeRate(sic?.pack_units, sic?.pack_hours)
               return (
                 <tr key={slot}>
                   <td className="border border-white/10 bg-slate-700/40 px-1 py-0.5 font-display text-[10px] font-bold text-slate-200">
                     {slot}
                   </td>
-                  <BlankCell />
+                  <ComputedCell value={packOps} />
                   <EditableCell value={row.spiders} onChange={(v) => updateRow(i, { spiders: v })} />
                   <ComputedCell value={packUnits} />
-                  <BlankCell />
+                  <ComputedCell value={packUph} />
 
                   <ComputedCell value={pickOps} />
                   <ComputedCell value={pickUnits} />

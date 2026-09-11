@@ -10,11 +10,11 @@ const TRACKING_HOURS: string[] = Array.from({ length: 24 }, (_, i) => {
   return `${pad(start)}-${pad(end)}`
 })
 
-function InfoField({ label, wide }: { label: string; wide?: boolean }) {
+function InfoField({ label }: { label: string }) {
   return (
-    <div className={`flex items-center gap-2 ${wide ? 'flex-1' : ''}`}>
-      <span className="shrink-0 text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}:</span>
-      <span className="min-h-[1.5rem] flex-1 rounded border border-dashed border-white/15" />
+    <div className="flex items-center gap-1.5">
+      <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}:</span>
+      <span className="min-h-[1.25rem] w-16 rounded border border-dashed border-white/15" />
     </div>
   )
 }
@@ -23,10 +23,12 @@ function GroupHeaderCell({
   title,
   accent,
   colSpan,
+  target,
 }: {
   title: string
   accent: 'cyan' | 'red' | 'amber' | 'slate'
   colSpan: number
+  target?: string
 }) {
   const bg =
     accent === 'cyan'
@@ -39,14 +41,15 @@ function GroupHeaderCell({
   return (
     <th
       colSpan={colSpan}
-      className={`border border-white/10 px-2 py-2 font-display text-sm font-extrabold uppercase tracking-wide text-white ${bg}`}
+      className={`border border-white/10 px-1 py-1 font-display text-[11px] font-extrabold uppercase tracking-wide text-white ${bg}`}
     >
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-1.5">
         <span>{title}</span>
-        <span className="flex items-center gap-1 rounded bg-black/25 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide normal-case text-white/80">
-          Target
-          <span className="inline-block w-10 border-b border-dashed border-white/50" />
-        </span>
+        {target !== undefined && (
+          <span className="flex items-center gap-1 rounded bg-black/25 px-1 py-0.5 text-[9px] font-semibold tracking-wide normal-case text-white/80">
+            Target {target}
+          </span>
+        )}
       </div>
     </th>
   )
@@ -56,7 +59,7 @@ function SubHeaderCell({ label, accent }: { label: string; accent: 'cyan' | 'red
   const text = accent === 'cyan' ? 'text-cyan-300' : accent === 'red' ? 'text-red-400' : accent === 'amber' ? 'text-amber-300' : 'text-slate-300'
   return (
     <th
-      className={`border border-white/10 bg-[var(--panel)] px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest ${text}`}
+      className={`border border-white/10 bg-[var(--panel)] px-1 py-1 text-[9px] font-bold uppercase tracking-wide ${text}`}
     >
       {label}
     </th>
@@ -64,17 +67,19 @@ function SubHeaderCell({ label, accent }: { label: string; accent: 'cyan' | 'red
 }
 
 function BlankCell() {
-  return <td className="border border-white/10 bg-[var(--panel-2)] px-2 py-2" />
+  return <td className="border border-white/10 bg-[var(--panel-2)] px-1 py-0.5" />
 }
 
 /**
  * A digital replica of the shop-floor "Daily Tracking" whiteboard (Pack /
  * Pick / Rebin ops, units and UPH per hour, plus Admin+TL and Productive
- * Hours), styled with the dashboard's own colors. Every cell is
+ * Hours), styled with the dashboard's own colors. Every data cell is
  * intentionally blank for now — this is the layout only. Once we know
  * which of these should pull from existing Admin data (e.g. Pack/Pick
  * Units from the Outbound SIC hourly figures) we can wire those cells up
- * instead of leaving them for manual entry.
+ * instead of leaving them for manual entry. Sized compactly (small type,
+ * tight row height, no forced min-width) so the whole board fits on
+ * screen without a scrollbar.
  */
 export function DailyTrackingBoard({ reportDate }: { reportDate: string }) {
   return (
@@ -86,9 +91,9 @@ export function DailyTrackingBoard({ reportDate }: { reportDate: string }) {
           once that's wired up.
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl border border-white/10 bg-[var(--panel)] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="shrink-0 text-[11px] font-bold uppercase tracking-widest text-slate-500">Date:</span>
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/10 bg-[var(--panel)] px-4 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">Date:</span>
             <span className="font-display text-sm font-bold text-slate-100">
               {formatDateBadge(new Date(`${reportDate}T00:00:00`))}
             </span>
@@ -102,18 +107,33 @@ export function DailyTrackingBoard({ reportDate }: { reportDate: string }) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[var(--panel-2)] p-2">
-        <table className="w-full min-w-[1100px] border-collapse text-sm">
+        <table className="w-full table-fixed border-collapse text-sm">
+          <colgroup>
+            <col className="w-[7%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[6.5%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
+          </colgroup>
           <thead>
             <tr>
               <th
                 rowSpan={2}
-                className="border border-white/10 bg-slate-700/90 px-3 py-2 font-display text-sm font-extrabold uppercase tracking-wide text-white"
+                className="border border-white/10 bg-slate-700/90 px-1 py-1 font-display text-[11px] font-extrabold uppercase tracking-wide text-white"
               >
                 Hour
               </th>
-              <GroupHeaderCell title="Pack" accent="cyan" colSpan={4} />
-              <GroupHeaderCell title="Pick" accent="red" colSpan={3} />
-              <GroupHeaderCell title="Rebin" accent="amber" colSpan={3} />
+              <GroupHeaderCell title="Pack" accent="cyan" colSpan={4} target="135" />
+              <GroupHeaderCell title="Pick" accent="red" colSpan={3} target="210" />
+              <GroupHeaderCell title="Rebin" accent="amber" colSpan={3} target="350" />
               <GroupHeaderCell title="Total" accent="slate" colSpan={2} />
             </tr>
             <tr>
@@ -137,7 +157,7 @@ export function DailyTrackingBoard({ reportDate }: { reportDate: string }) {
           <tbody>
             {TRACKING_HOURS.map((slot) => (
               <tr key={slot}>
-                <td className="border border-white/10 bg-slate-700/40 px-3 py-2 font-display text-xs font-bold text-slate-200">
+                <td className="border border-white/10 bg-slate-700/40 px-1 py-0.5 font-display text-[10px] font-bold text-slate-200">
                   {slot}
                 </td>
                 <BlankCell />

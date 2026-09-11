@@ -123,10 +123,6 @@ export function AllBoardsOverview({ initialDate }: { initialDate: string }) {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[var(--panel-2)] p-5">
         <div>
           <h3 className="font-display text-lg font-extrabold uppercase tracking-wide">All Boards</h3>
-          <p className="mt-1 text-sm text-slate-400">
-            Top 5 and Bottom 5 pickers &amp; packers together. Read-only — edit them from the Top 5 / Bottom 5 Board
-            tabs.
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-1 rounded-lg border border-white/10 bg-[var(--panel)] p-1">

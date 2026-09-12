@@ -1,11 +1,13 @@
 import { supabase } from './supabase'
 import { HOUR_SLOTS } from './constants'
-import type { HourlyRow, LeaderboardEntry, ReportDay } from './types'
+import type { HourlyRow, LeaderboardEntry, ReportDay, TrackingInfo, TrackingRow } from './types'
 
 export interface FullReportDay {
   day: ReportDay
   hourly: HourlyRow[]
   leaderboard: LeaderboardEntry[]
+  trackingInfo: TrackingInfo
+  trackingRows: TrackingRow[]
 }
 
 function emptyHourlyRows(reportDate: string): HourlyRow[] {
@@ -22,6 +24,30 @@ function emptyHourlyRows(reportDate: string): HourlyRow[] {
   }))
 }
 
+function emptyTrackingInfo(reportDate: string): TrackingInfo {
+  return {
+    report_date: reportDate,
+    owner_am: null,
+    owner_pm: null,
+    target_am: null,
+    target_pm: null,
+    shift: null,
+  }
+}
+
+function emptyTrackingRows(reportDate: string): TrackingRow[] {
+  return Array.from({ length: 24 }, (_, hour_index) => ({
+    report_date: reportDate,
+    hour_index,
+    spiders: null,
+    rebin_ops: null,
+    rebin_units: null,
+    rebin_uph: null,
+    admin_tl: null,
+    productive_hours: null,
+  }))
+}
+
 function emptyLeaderboard(reportDate: string): LeaderboardEntry[] {
   const out: LeaderboardEntry[] = []
   for (const board_type of ['top5', 'bottom5'] as const) {
@@ -35,10 +61,12 @@ function emptyLeaderboard(reportDate: string): LeaderboardEntry[] {
 }
 
 export async function fetchFullReportDay(reportDate: string): Promise<FullReportDay> {
-  const [dayRes, hourlyRes, leaderboardRes] = await Promise.all([
+  const [dayRes, hourlyRes, leaderboardRes, trackingInfoRes, trackingRowsRes] = await Promise.all([
     supabase.from('fiege_report_days').select('*').eq('report_date', reportDate).maybeSingle(),
     supabase.from('fiege_hourly_data').select('*').eq('report_date', reportDate).order('hour_index'),
     supabase.from('fiege_leaderboard_entries').select('*').eq('report_date', reportDate).order('rank'),
+    supabase.from('fiege_tracking_info').select('*').eq('report_date', reportDate).maybeSingle(),
+    supabase.from('fiege_tracking_rows').select('*').eq('report_date', reportDate).order('hour_index'),
   ])
 
   const day: ReportDay = (dayRes.data as ReportDay | null) ?? {
@@ -59,7 +87,14 @@ export async function fetchFullReportDay(reportDate: string): Promise<FullReport
   const lbByKey = new Map(((leaderboardRes.data as LeaderboardEntry[] | null) ?? []).map((e) => [lbKey(e), e]))
   const leaderboard = emptyLeaderboard(reportDate).map((e) => lbByKey.get(lbKey(e)) ?? e)
 
-  return { day, hourly, leaderboard }
+  const trackingInfo: TrackingInfo = (trackingInfoRes.data as TrackingInfo | null) ?? emptyTrackingInfo(reportDate)
+
+  const trackingRowsByIndex = new Map(
+    ((trackingRowsRes.data as TrackingRow[] | null) ?? []).map((r) => [r.hour_index, r])
+  )
+  const trackingRows = emptyTrackingRows(reportDate).map((row) => trackingRowsByIndex.get(row.hour_index) ?? row)
+
+  return { day, hourly, leaderboard, trackingInfo, trackingRows }
 }
 
 /**
@@ -95,7 +130,7 @@ export async function fetchLeaderboardEntriesRange(startDate: string, endDate: s
 }
 
 export async function saveAndBroadcast(data: FullReportDay): Promise<void> {
-  const { day, hourly, leaderboard } = data
+  const { day, hourly, leaderboard, trackingInfo, trackingRows } = data
 
   const { error: dayError } = await supabase
     .from('fiege_report_days')
@@ -117,12 +152,27 @@ export async function saveAndBroadcast(data: FullReportDay): Promise<void> {
       { onConflict: 'report_date,board_type,role,rank' }
     )
   if (lbError) throw lbError
+
+  const { error: trackingInfoError } = await supabase
+    .from('fiege_tracking_info')
+    .upsert({ ...trackingInfo, updated_at: new Date().toISOString() }, { onConflict: 'report_date' })
+  if (trackingInfoError) throw trackingInfoError
+
+  const { error: trackingRowsError } = await supabase
+    .from('fiege_tracking_rows')
+    .upsert(
+      trackingRows.map(({ id: _id, ...rest }) => rest),
+      { onConflict: 'report_date,hour_index' }
+    )
+  if (trackingRowsError) throw trackingRowsError
 }
 
 export async function resetDay(reportDate: string): Promise<void> {
   await Promise.all([
     supabase.from('fiege_hourly_data').delete().eq('report_date', reportDate),
     supabase.from('fiege_leaderboard_entries').delete().eq('report_date', reportDate),
+    supabase.from('fiege_tracking_rows').delete().eq('report_date', reportDate),
+    supabase.from('fiege_tracking_info').delete().eq('report_date', reportDate),
   ])
   await supabase
     .from('fiege_report_days')

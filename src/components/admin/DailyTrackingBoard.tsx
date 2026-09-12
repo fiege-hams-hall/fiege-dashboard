@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { computeRate } from '../../lib/upmh'
-import type { HourlyRow } from '../../lib/types'
+import type { HourlyRow, TrackingInfo, TrackingRow } from '../../lib/types'
 
 // Matches the physical whiteboard's rolling hour cycle (starts at 10-11,
 // wraps through midnight, ends at 09-10) rather than the 06:00 start used
@@ -91,30 +90,17 @@ function sicRowFor(hourly: HourlyRow[], trackingRowIndex: number): HourlyRow | u
   return hourly[(trackingRowIndex + SIC_HOUR_OFFSET) % 24]
 }
 
-function EditableCell({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function EditableCell({ value, onChange }: { value: string | null; onChange: (v: string) => void }) {
   return (
     <td className="border border-white/10 bg-[var(--panel-2)] p-0">
       <input
         type="text"
-        value={value}
+        value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-transparent px-1 py-0.5 text-center text-[10px] text-slate-100 outline-none focus:bg-white/5 focus:ring-1 focus:ring-cyan-400"
       />
     </td>
   )
-}
-
-interface TrackingRowState {
-  spiders: string
-  rebinOps: string
-  rebinUnits: string
-  rebinUph: string
-  adminTl: string
-  productiveHours: string
-}
-
-function emptyTrackingRow(): TrackingRowState {
-  return { spiders: '', rebinOps: '', rebinUnits: '', rebinUph: '', adminTl: '', productiveHours: '' }
 }
 
 /**
@@ -126,32 +112,28 @@ function emptyTrackingRow(): TrackingRowState {
  * read-only — they're pulled straight from the matching hour's Outbound SIC
  * Data (Ops = Pack/Pick Hrs, Units = the SIC units, UPH = the same UPH SIC
  * computes). The info bar (owner, targets, shift), Spiders, all of Rebin, and
- * Total (Admin+TL / Productive Hrs) are open for manual entry.
- *
- * Note: the manually-entered fields below are local to this tab for now
- * (not yet saved to the database), so they'll reset on page refresh or if
- * you switch report dates and back. The SIC-sourced cells always reflect
- * whatever is currently saved on the Outbound SIC Data step.
+ * Total (Admin+TL / Productive Hrs) are open for manual entry — saved to the
+ * database (fiege_tracking_info / fiege_tracking_rows) via the same Save &
+ * Broadcast button as the rest of Admin.
  */
 export function DailyTrackingBoard({
   reportDate,
   onReportDateChange,
   hourly,
+  trackingInfo,
+  onTrackingInfoChange,
+  trackingRows,
+  onTrackingRowChange,
 }: {
   reportDate: string
   onReportDateChange: (v: string) => void
   hourly: HourlyRow[]
+  trackingInfo: TrackingInfo
+  onTrackingInfoChange: (patch: Partial<TrackingInfo>) => void
+  trackingRows: TrackingRow[]
+  onTrackingRowChange: (hourIndex: number, patch: Partial<TrackingRow>) => void
 }) {
-  const [ownerAm, setOwnerAm] = useState('')
-  const [ownerPm, setOwnerPm] = useState('')
-  const [targetAm, setTargetAm] = useState('')
-  const [targetPm, setTargetPm] = useState('')
-  const [shift, setShift] = useState('')
-  const [rows, setRows] = useState<TrackingRowState[]>(() => TRACKING_HOURS.map(() => emptyTrackingRow()))
-
-  function updateRow(index: number, patch: Partial<TrackingRowState>) {
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
-  }
+  const rowByIndex = new Map(trackingRows.map((r) => [r.hour_index, r]))
 
   return (
     <div className="flex flex-col gap-5">
@@ -168,15 +150,31 @@ export function DailyTrackingBoard({
               className="rounded border border-white/15 bg-transparent px-1.5 py-1 text-xs font-bold text-slate-100 outline-none focus:border-cyan-400"
             />
           </div>
-          <TextField label="Owner AM" value={ownerAm} onChange={setOwnerAm} />
-          <TextField label="Owner PM" value={ownerPm} onChange={setOwnerPm} />
-          <TextField label="Target AM" value={targetAm} onChange={setTargetAm} />
-          <TextField label="Target PM" value={targetPm} onChange={setTargetPm} />
+          <TextField
+            label="Owner AM"
+            value={trackingInfo.owner_am ?? ''}
+            onChange={(v) => onTrackingInfoChange({ owner_am: v })}
+          />
+          <TextField
+            label="Owner PM"
+            value={trackingInfo.owner_pm ?? ''}
+            onChange={(v) => onTrackingInfoChange({ owner_pm: v })}
+          />
+          <TextField
+            label="Target AM"
+            value={trackingInfo.target_am ?? ''}
+            onChange={(v) => onTrackingInfoChange({ target_am: v })}
+          />
+          <TextField
+            label="Target PM"
+            value={trackingInfo.target_pm ?? ''}
+            onChange={(v) => onTrackingInfoChange({ target_pm: v })}
+          />
           <div className="flex items-center gap-1.5">
             <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">Shift:</span>
             <select
-              value={shift}
-              onChange={(e) => setShift(e.target.value)}
+              value={trackingInfo.shift ?? ''}
+              onChange={(e) => onTrackingInfoChange({ shift: e.target.value || null })}
               className="rounded border border-white/15 bg-[var(--panel-2)] px-1.5 py-1 text-xs text-slate-100 outline-none focus:border-cyan-400"
             >
               <option value="">—</option>
@@ -238,7 +236,7 @@ export function DailyTrackingBoard({
           </thead>
           <tbody>
             {TRACKING_HOURS.map((slot, i) => {
-              const row = rows[i]
+              const row = rowByIndex.get(i)
               const sic = sicRowFor(hourly, i)
               const packOps = sic?.pack_hours ?? null
               const pickOps = sic?.pick_hours ?? null
@@ -252,7 +250,7 @@ export function DailyTrackingBoard({
                     {slot}
                   </td>
                   <ComputedCell value={packOps} />
-                  <EditableCell value={row.spiders} onChange={(v) => updateRow(i, { spiders: v })} />
+                  <EditableCell value={row?.spiders ?? null} onChange={(v) => onTrackingRowChange(i, { spiders: v })} />
                   <ComputedCell value={packUnits} />
                   <ComputedCell value={packUph} />
 
@@ -260,12 +258,24 @@ export function DailyTrackingBoard({
                   <ComputedCell value={pickUnits} />
                   <ComputedCell value={pickUph} />
 
-                  <EditableCell value={row.rebinOps} onChange={(v) => updateRow(i, { rebinOps: v })} />
-                  <EditableCell value={row.rebinUnits} onChange={(v) => updateRow(i, { rebinUnits: v })} />
-                  <EditableCell value={row.rebinUph} onChange={(v) => updateRow(i, { rebinUph: v })} />
+                  <EditableCell
+                    value={row?.rebin_ops ?? null}
+                    onChange={(v) => onTrackingRowChange(i, { rebin_ops: v })}
+                  />
+                  <EditableCell
+                    value={row?.rebin_units ?? null}
+                    onChange={(v) => onTrackingRowChange(i, { rebin_units: v })}
+                  />
+                  <EditableCell
+                    value={row?.rebin_uph ?? null}
+                    onChange={(v) => onTrackingRowChange(i, { rebin_uph: v })}
+                  />
 
-                  <EditableCell value={row.adminTl} onChange={(v) => updateRow(i, { adminTl: v })} />
-                  <EditableCell value={row.productiveHours} onChange={(v) => updateRow(i, { productiveHours: v })} />
+                  <EditableCell value={row?.admin_tl ?? null} onChange={(v) => onTrackingRowChange(i, { admin_tl: v })} />
+                  <EditableCell
+                    value={row?.productive_hours ?? null}
+                    onChange={(v) => onTrackingRowChange(i, { productive_hours: v })}
+                  />
                 </tr>
               )
             })}

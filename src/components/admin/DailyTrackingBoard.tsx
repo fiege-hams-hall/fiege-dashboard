@@ -160,28 +160,17 @@ export function DailyTrackingBoard({
             value={trackingInfo.owner_pm ?? ''}
             onChange={(v) => onTrackingInfoChange({ owner_pm: v })}
           />
-          <TextField
-            label="Target AM"
-            value={trackingInfo.target_am ?? ''}
-            onChange={(v) => onTrackingInfoChange({ target_am: v })}
-          />
-          <TextField
-            label="Target PM"
-            value={trackingInfo.target_pm ?? ''}
-            onChange={(v) => onTrackingInfoChange({ target_pm: v })}
-          />
-          <div className="flex items-center gap-1.5">
-            <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-500">Shift:</span>
-            <select
-              value={trackingInfo.shift ?? ''}
-              onChange={(e) => onTrackingInfoChange({ shift: e.target.value || null })}
-              className="rounded border border-white/15 bg-[var(--panel-2)] px-1.5 py-1 text-xs text-slate-100 outline-none focus:border-cyan-400"
-            >
-              <option value="">—</option>
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
-              <option value="NS">NS</option>
-            </select>
+          <div className="flex items-center gap-4">
+            <TextField
+              label="Target AM"
+              value={trackingInfo.target_am ?? ''}
+              onChange={(v) => onTrackingInfoChange({ target_am: v })}
+            />
+            <TextField
+              label="Target PM"
+              value={trackingInfo.target_pm ?? ''}
+              onChange={(v) => onTrackingInfoChange({ target_pm: v })}
+            />
           </div>
         </div>
       </div>

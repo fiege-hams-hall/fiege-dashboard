@@ -12,7 +12,7 @@ import { AdminFooter } from '../components/admin/AdminFooter'
 import { fetchFullReportDay, resetDay, saveAndBroadcast, type FullReportDay } from '../lib/api'
 import { todayISO } from '../lib/date'
 import { ADMIN_SESSION_KEY } from '../lib/constants'
-import type { LeaderboardEntry, Role } from '../lib/types'
+import type { LeaderboardEntry, Role, TrackingInfo, TrackingRow } from '../lib/types'
 
 function AdminPanel() {
   const [reportDate, setReportDate] = useState(todayISO())
@@ -50,6 +50,20 @@ function AdminPanel() {
         e.board_type === boardType && e.role === role && e.rank === rank ? { ...e, ...patch } : e
       )
       return { ...prev, leaderboard }
+    })
+  }
+
+  function updateTrackingInfo(patch: Partial<TrackingInfo>) {
+    setData((prev) => (prev ? { ...prev, trackingInfo: { ...prev.trackingInfo, ...patch } } : prev))
+  }
+
+  function updateTrackingRow(hourIndex: number, patch: Partial<TrackingRow>) {
+    setData((prev) => {
+      if (!prev) return prev
+      const trackingRows = prev.trackingRows.map((row) =>
+        row.hour_index === hourIndex ? { ...row, ...patch } : row
+      )
+      return { ...prev, trackingRows }
     })
   }
 
@@ -144,7 +158,15 @@ function AdminPanel() {
         )}
         {step === 5 && <AllBoardsOverview initialDate={reportDate} />}
         {step === 6 && (
-          <DailyTrackingBoard reportDate={reportDate} onReportDateChange={setReportDate} hourly={data.hourly} />
+          <DailyTrackingBoard
+            reportDate={reportDate}
+            onReportDateChange={setReportDate}
+            hourly={data.hourly}
+            trackingInfo={data.trackingInfo}
+            onTrackingInfoChange={updateTrackingInfo}
+            trackingRows={data.trackingRows}
+            onTrackingRowChange={updateTrackingRow}
+          />
         )}
 
         <AdminFooter

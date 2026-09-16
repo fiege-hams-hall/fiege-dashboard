@@ -24,7 +24,7 @@ function emptyHourlyRows(reportDate: string): HourlyRow[] {
   }))
 }
 
-function emptyTrackingInfo(reportDate: string): TrackingInfo {
+export function emptyTrackingInfo(reportDate: string): TrackingInfo {
   return {
     report_date: reportDate,
     owner_am: null,
@@ -35,7 +35,7 @@ function emptyTrackingInfo(reportDate: string): TrackingInfo {
   }
 }
 
-function emptyTrackingRows(reportDate: string): TrackingRow[] {
+export function emptyTrackingRows(reportDate: string): TrackingRow[] {
   return Array.from({ length: 24 }, (_, hour_index) => ({
     report_date: reportDate,
     hour_index,

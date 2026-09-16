@@ -4,11 +4,12 @@ import { TopFiveView } from '../components/tv/TopFiveView'
 import { BottomFiveView } from '../components/tv/BottomFiveView'
 import { PerformanceView } from '../components/tv/PerformanceView'
 import { OperationsView } from '../components/tv/OperationsView'
+import { DailyTrackingView } from '../components/tv/DailyTrackingView'
 import { useReportDay } from '../hooks/useReportDay'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { todayISO } from '../lib/date'
 
-const VIEWS = ['top5', 'bottom5', 'performance', 'ops'] as const
+const VIEWS = ['top5', 'bottom5', 'performance', 'ops', 'tracking'] as const
 type View = (typeof VIEWS)[number]
 
 const ROTATE_MS = 15_000
@@ -38,18 +39,24 @@ const VIEW_META: Record<View, { title: string; footerLabel: string; rows: string
     rows: '168px 1fr 32px',
     gap: 'gap-5',
   },
+  tracking: {
+    title: 'Fiege Live Warehouse Dashboard',
+    footerLabel: 'Fiege · Daily Tracking · Rotating every 15s',
+    rows: '168px 1fr 32px',
+    gap: 'gap-5',
+  },
 }
 
 /**
  * The public TV board. Mirrors the original site's behaviour exactly: a
  * single full-bleed screen (no scrolling — everything is sized in vh/clamp
- * to fit whatever display it's on) that auto-rotates every 15s through four
- * views — Top 5, Bottom 5 ("Focus 5"), a live Performance board, and an
- * Operations board — rather than four separate pages.
+ * to fit whatever display it's on) that auto-rotates every 15s through five
+ * views — Top 5, Bottom 5 ("Focus 5"), a live Performance board, an
+ * Operations board, and the Daily Tracking board — rather than separate pages.
  */
 export function TvBoard() {
   const reportDate = todayISO()
-  const { day, hourly, leaderboard, loading } = useReportDay(reportDate)
+  const { day, hourly, leaderboard, trackingInfo, trackingRows, loading } = useReportDay(reportDate)
   const { requestWakeLock, held } = useWakeLock()
   const [viewIndex, setViewIndex] = useState(0)
   const [showWakeHint, setShowWakeHint] = useState(false)
@@ -104,8 +111,10 @@ export function TvBoard() {
           <BottomFiveView leaderboard={leaderboard} />
         ) : view === 'performance' ? (
           <PerformanceView hourly={hourly} />
-        ) : (
+        ) : view === 'ops' ? (
           <OperationsView day={day} />
+        ) : (
+          <DailyTrackingView hourly={hourly} trackingInfo={trackingInfo} trackingRows={trackingRows} />
         )}
 
         <footer

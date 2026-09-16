@@ -1,34 +1,47 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { HourlyRow, LeaderboardEntry, ReportDay } from '../lib/types'
+import { emptyTrackingInfo, emptyTrackingRows } from '../lib/api'
+import type { HourlyRow, LeaderboardEntry, ReportDay, TrackingInfo, TrackingRow } from '../lib/types'
 
 export interface ReportDayData {
   day: ReportDay | null
   hourly: HourlyRow[]
   leaderboard: LeaderboardEntry[]
+  trackingInfo: TrackingInfo
+  trackingRows: TrackingRow[]
   loading: boolean
   refresh: () => void
 }
 
 /**
  * Loads (and keeps live via Supabase Realtime) all data for a given report date:
- * the day summary row, the 24 hourly rows, and every leaderboard entry.
+ * the day summary row, the 24 hourly rows, every leaderboard entry, and the
+ * Daily Tracking board's info bar + hourly rows.
  */
 export function useReportDay(reportDate: string): ReportDayData {
   const [day, setDay] = useState<ReportDay | null>(null)
   const [hourly, setHourly] = useState<HourlyRow[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [trackingInfo, setTrackingInfo] = useState<TrackingInfo>(() => emptyTrackingInfo(reportDate))
+  const [trackingRows, setTrackingRows] = useState<TrackingRow[]>(() => emptyTrackingRows(reportDate))
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const [dayRes, hourlyRes, leaderboardRes] = await Promise.all([
+    const [dayRes, hourlyRes, leaderboardRes, trackingInfoRes, trackingRowsRes] = await Promise.all([
       supabase.from('fiege_report_days').select('*').eq('report_date', reportDate).maybeSingle(),
       supabase.from('fiege_hourly_data').select('*').eq('report_date', reportDate).order('hour_index'),
       supabase.from('fiege_leaderboard_entries').select('*').eq('report_date', reportDate).order('rank'),
+      supabase.from('fiege_tracking_info').select('*').eq('report_date', reportDate).maybeSingle(),
+      supabase.from('fiege_tracking_rows').select('*').eq('report_date', reportDate).order('hour_index'),
     ])
     setDay((dayRes.data as ReportDay | null) ?? null)
     setHourly((hourlyRes.data as HourlyRow[] | null) ?? [])
     setLeaderboard((leaderboardRes.data as LeaderboardEntry[] | null) ?? [])
+    setTrackingInfo((trackingInfoRes.data as TrackingInfo | null) ?? emptyTrackingInfo(reportDate))
+    const trackingRowsByIndex = new Map(
+      ((trackingRowsRes.data as TrackingRow[] | null) ?? []).map((r) => [r.hour_index, r])
+    )
+    setTrackingRows(emptyTrackingRows(reportDate).map((row) => trackingRowsByIndex.get(row.hour_index) ?? row))
     setLoading(false)
   }, [reportDate])
 
@@ -36,9 +49,9 @@ export function useReportDay(reportDate: string): ReportDayData {
     setLoading(true)
     load()
 
-    // A single admin save can touch 45+ rows across these three tables,
-    // firing that many separate postgres_changes events — debounce them
-    // into one reload instead of re-fetching everything per row.
+    // A single admin save can touch 45+ rows across these tables, firing
+    // that many separate postgres_changes events — debounce them into one
+    // reload instead of re-fetching everything per row.
     let debounceId: ReturnType<typeof setTimeout> | null = null
     const scheduleReload = () => {
       if (debounceId) clearTimeout(debounceId)
@@ -67,6 +80,16 @@ export function useReportDay(reportDate: string): ReportDayData {
         },
         scheduleReload
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fiege_tracking_info', filter: `report_date=eq.${reportDate}` },
+        scheduleReload
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fiege_tracking_rows', filter: `report_date=eq.${reportDate}` },
+        scheduleReload
+      )
       .subscribe()
 
     // Safety net: on an always-on shop-floor screen, the realtime socket can
@@ -92,5 +115,5 @@ export function useReportDay(reportDate: string): ReportDayData {
     }
   }, [reportDate, load])
 
-  return { day, hourly, leaderboard, loading, refresh: load }
+  return { day, hourly, leaderboard, trackingInfo, trackingRows, loading, refresh: load }
 }

@@ -42,7 +42,10 @@ const VIEW_META: Record<View, { title: string; footerLabel: string; rows: string
   tracking: {
     title: 'Fiege Live Warehouse Dashboard',
     footerLabel: 'Fiege · Daily Tracking · Rotating every 15s',
-    rows: '168px 1fr 32px',
+    // No header row here on purpose — the tracking grid has 24 rows of its
+    // own to fit, so the logo/clock/admin bar is dropped for this slide to
+    // free up the height it needs for legible text.
+    rows: '1fr 32px',
     gap: 'gap-5',
   },
 }
@@ -99,7 +102,7 @@ export function TvBoard() {
         style={{ height: '100dvh', gridTemplateRows: meta.rows }}
         onClick={requestWakeLock}
       >
-        <BoardHeader />
+        {view !== 'tracking' && <BoardHeader />}
 
         {loading ? (
           <div className="flex min-h-0 items-center justify-center" style={{ color: 'var(--text-muted)' }}>

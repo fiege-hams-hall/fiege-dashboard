@@ -35,11 +35,11 @@ function GroupHeader({ title, accent, span, target }: { title: string; accent: A
       style={{ gridColumn: `span ${span}` }}
       className={`flex items-center justify-center gap-2 border border-white/10 px-1 font-display font-extrabold text-white uppercase tracking-wide ${ACCENT[accent].bg}`}
     >
-      <span style={{ fontSize: 'clamp(10px, 1.15vh, 16px)' }}>{title}</span>
+      <span style={{ fontSize: 'clamp(16px, 2.4vh, 30px)' }}>{title}</span>
       {target !== undefined && (
         <span
-          className="rounded bg-black/25 px-1.5 py-0.5 font-semibold normal-case text-white/80"
-          style={{ fontSize: 'clamp(8px, 0.85vh, 11px)' }}
+          className="rounded bg-black/25 px-2 py-0.5 font-semibold normal-case text-white/80"
+          style={{ fontSize: 'clamp(11px, 1.4vh, 17px)' }}
         >
           Target {target}
         </span>
@@ -52,7 +52,7 @@ function SubHeader({ label, accent }: { label: string; accent: Accent }) {
   return (
     <div
       className={`flex items-center justify-center border border-white/10 bg-[var(--bg-panel)] px-1 text-center leading-tight font-bold uppercase tracking-wide ${ACCENT[accent].text}`}
-      style={{ fontSize: 'clamp(8px, 0.8vh, 11px)' }}
+      style={{ fontSize: 'clamp(12px, 1.7vh, 21px)' }}
     >
       {label}
     </div>
@@ -63,7 +63,7 @@ function Cell({ value }: { value: string | number | null | undefined }) {
   return (
     <div
       className="flex items-center justify-center border border-white/10 bg-[var(--bg-panel)] tabular-nums text-slate-100"
-      style={{ fontSize: 'clamp(9px, 1.05vh, 14px)' }}
+      style={{ fontSize: 'clamp(14px, 2.1vh, 26px)' }}
     >
       {value === null || value === undefined || value === '' ? '—' : value}
     </div>
@@ -75,11 +75,11 @@ function InfoField({ label, value }: { label: string; value: string | null | und
     <div className="flex items-center gap-2">
       <span
         className="shrink-0 font-bold tracking-widest text-slate-500 uppercase"
-        style={{ fontSize: 'clamp(9px, 1vh, 13px)' }}
+        style={{ fontSize: 'clamp(12px, 1.6vh, 20px)' }}
       >
         {label}:
       </span>
-      <span className="font-bold text-slate-100" style={{ fontSize: 'clamp(11px, 1.3vh, 17px)' }}>
+      <span className="font-bold text-slate-100" style={{ fontSize: 'clamp(15px, 2.1vh, 26px)' }}>
         {value || '—'}
       </span>
     </div>
@@ -109,7 +109,7 @@ export function DailyTrackingView({
       <div className="panel stagger-in flex flex-wrap items-center justify-between gap-4 px-6 py-2.5">
         <span
           className="font-display font-extrabold text-white uppercase tracking-wide"
-          style={{ fontSize: 'clamp(14px, 1.7vh, 22px)' }}
+          style={{ fontSize: 'clamp(18px, 2.6vh, 32px)' }}
         >
           Daily Tracking
         </span>
@@ -125,14 +125,18 @@ export function DailyTrackingView({
         className="grid min-h-0 overflow-hidden rounded-2xl border border-white/10"
         style={{
           gridTemplateColumns: '7fr repeat(10, 6.5fr) 10fr 10fr',
-          gridTemplateRows: 'auto auto repeat(24, 1fr)',
+          // minmax(0, 1fr) — not bare 1fr — so the 24 data rows are forced to
+          // share the leftover space evenly and can never grow past it; bare
+          // 1fr rows would let an "auto" content minimum push the grid taller
+          // than its container, which is exactly what causes a scrollbar.
+          gridTemplateRows: 'auto auto repeat(24, minmax(0, 1fr))',
         }}
       >
         <div
           style={{ gridRow: 'span 2' }}
           className="flex items-center justify-center border border-white/10 bg-slate-700/90 font-display font-extrabold text-white uppercase tracking-wide"
         >
-          <span style={{ fontSize: 'clamp(9px, 1vh, 13px)' }}>Hour</span>
+          <span style={{ fontSize: 'clamp(13px, 1.9vh, 23px)' }}>Hour</span>
         </div>
         <GroupHeader title="Pack" accent="cyan" span={4} target="135" />
         <GroupHeader title="Pick" accent="red" span={3} target="210" />
@@ -168,7 +172,7 @@ export function DailyTrackingView({
             <Fragment key={slot}>
               <div
                 className="flex items-center justify-center border border-white/10 bg-slate-700/40 font-display font-bold text-slate-200"
-                style={{ fontSize: 'clamp(9px, 1vh, 13px)' }}
+                style={{ fontSize: 'clamp(13px, 2vh, 24px)' }}
               >
                 {slot}
               </div>

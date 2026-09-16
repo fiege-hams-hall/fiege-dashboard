@@ -1,10 +1,9 @@
 import { computeRate } from '../../lib/upmh'
 import type { HourlyRow, TrackingInfo, TrackingRow } from '../../lib/types'
 
-// Matches the physical whiteboard's rolling hour cycle (starts at 10-11,
-// wraps through midnight, ends at 09-10) rather than the 06:00 start used
-// elsewhere in the app.
-const TRACKING_HOURS: string[] = Array.from({ length: 24 }, (_, i) => {
+// Matches the shift's actual tracking window: starts at 10-11, wraps
+// through midnight, and ends at 01-02.
+const TRACKING_HOURS: string[] = Array.from({ length: 16 }, (_, i) => {
   const pad = (h: number) => h.toString().padStart(2, '0')
   const start = (10 + i) % 24
   const end = (11 + i) % 24
@@ -72,9 +71,13 @@ function SubHeaderCell({ label, accent }: { label: string; accent: 'cyan' | 'red
   )
 }
 
-function ComputedCell({ value }: { value: number | null | undefined }) {
+function ComputedCell({ value, danger }: { value: number | null | undefined; danger?: boolean }) {
   return (
-    <td className="border border-white/10 bg-[var(--panel-2)] px-1 py-0.5 text-center text-[10px] tabular-nums text-slate-100">
+    <td
+      className={`border border-white/10 bg-[var(--panel-2)] px-1 py-0.5 text-center text-[10px] tabular-nums ${
+        danger ? 'font-bold text-red-400' : 'text-slate-100'
+      }`}
+    >
       {value ?? '—'}
     </td>
   )
@@ -90,14 +93,35 @@ function sicRowFor(hourly: HourlyRow[], trackingRowIndex: number): HourlyRow | u
   return hourly[(trackingRowIndex + SIC_HOUR_OFFSET) % 24]
 }
 
-function EditableCell({ value, onChange }: { value: string | null; onChange: (v: string) => void }) {
+const PACK_UPH_TARGET = 135
+const PICK_UPH_TARGET = 210
+const REBIN_UPH_TARGET = 350
+
+/** Parses a manually-typed UPH cell (Rebin's is free text) for the below-target check. */
+function parseUph(value: string | null | undefined): number | null {
+  if (value === null || value === undefined || value.trim() === '') return null
+  const n = Number(value)
+  return Number.isNaN(n) ? null : n
+}
+
+function EditableCell({
+  value,
+  onChange,
+  danger,
+}: {
+  value: string | null
+  onChange: (v: string) => void
+  danger?: boolean
+}) {
   return (
     <td className="border border-white/10 bg-[var(--panel-2)] p-0">
       <input
         type="text"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-transparent px-1 py-0.5 text-center text-[10px] text-slate-100 outline-none focus:bg-white/5 focus:ring-1 focus:ring-cyan-400"
+        className={`w-full bg-transparent px-1 py-0.5 text-center text-[10px] outline-none focus:bg-white/5 focus:ring-1 focus:ring-cyan-400 ${
+          danger ? 'font-bold text-red-400' : 'text-slate-100'
+        }`}
       />
     </td>
   )
@@ -200,9 +224,9 @@ export function DailyTrackingBoard({
               >
                 Hour
               </th>
-              <GroupHeaderCell title="Pack" accent="cyan" colSpan={4} target="135" />
-              <GroupHeaderCell title="Pick" accent="red" colSpan={3} target="210" />
-              <GroupHeaderCell title="Rebin" accent="amber" colSpan={3} target="350" />
+              <GroupHeaderCell title="Pack" accent="cyan" colSpan={4} target={String(PACK_UPH_TARGET)} />
+              <GroupHeaderCell title="Pick" accent="red" colSpan={3} target={String(PICK_UPH_TARGET)} />
+              <GroupHeaderCell title="Rebin" accent="amber" colSpan={3} target={String(REBIN_UPH_TARGET)} />
               <GroupHeaderCell title="Total" accent="slate" colSpan={2} />
             </tr>
             <tr>
@@ -233,6 +257,7 @@ export function DailyTrackingBoard({
               const packUnits = sic?.pack_units ?? null
               const pickUph = computeRate(sic?.pick_units, sic?.pick_hours)
               const packUph = computeRate(sic?.pack_units, sic?.pack_hours)
+              const rebinUph = parseUph(row?.rebin_uph ?? null)
               return (
                 <tr key={slot}>
                   <td className="border border-white/10 bg-slate-700/40 px-1 py-0.5 font-display text-[10px] font-bold text-slate-200">
@@ -241,11 +266,11 @@ export function DailyTrackingBoard({
                   <ComputedCell value={packOps} />
                   <EditableCell value={row?.spiders ?? null} onChange={(v) => onTrackingRowChange(i, { spiders: v })} />
                   <ComputedCell value={packUnits} />
-                  <ComputedCell value={packUph} />
+                  <ComputedCell value={packUph} danger={packUph !== null && packUph < PACK_UPH_TARGET} />
 
                   <ComputedCell value={pickOps} />
                   <ComputedCell value={pickUnits} />
-                  <ComputedCell value={pickUph} />
+                  <ComputedCell value={pickUph} danger={pickUph !== null && pickUph < PICK_UPH_TARGET} />
 
                   <EditableCell
                     value={row?.rebin_ops ?? null}
@@ -258,6 +283,7 @@ export function DailyTrackingBoard({
                   <EditableCell
                     value={row?.rebin_uph ?? null}
                     onChange={(v) => onTrackingRowChange(i, { rebin_uph: v })}
+                    danger={rebinUph !== null && rebinUph < REBIN_UPH_TARGET}
                   />
 
                   <EditableCell value={row?.admin_tl ?? null} onChange={(v) => onTrackingRowChange(i, { admin_tl: v })} />

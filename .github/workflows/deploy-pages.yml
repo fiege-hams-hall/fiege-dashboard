@@ -23,9 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       # Firebase config and the admin UI-gate password are loaded from the
       # committed .env.production. None of these are truly secret: Firebase's

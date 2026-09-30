@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { useEffect, useState } from 'react'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 import { emptyTrackingInfo, emptyTrackingRows } from '../lib/api'
 import type { HourlyRow, LeaderboardEntry, ReportDay, TrackingInfo, TrackingRow } from '../lib/types'
 
@@ -10,110 +11,56 @@ export interface ReportDayData {
   trackingInfo: TrackingInfo
   trackingRows: TrackingRow[]
   loading: boolean
-  refresh: () => void
 }
 
-/**
- * Loads (and keeps live via Supabase Realtime) all data for a given report date:
- * the day summary row, the 24 hourly rows, every leaderboard entry, and the
- * Daily Tracking board's info bar + hourly rows.
- */
 export function useReportDay(reportDate: string): ReportDayData {
   const [day, setDay] = useState<ReportDay | null>(null)
   const [hourly, setHourly] = useState<HourlyRow[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [trackingInfo, setTrackingInfo] = useState<TrackingInfo>(() => emptyTrackingInfo(reportDate))
   const [trackingRows, setTrackingRows] = useState<TrackingRow[]>(() => emptyTrackingRows(reportDate))
-  const [loading, setLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    const [dayRes, hourlyRes, leaderboardRes, trackingInfoRes, trackingRowsRes] = await Promise.all([
-      supabase.from('fiege_report_days').select('*').eq('report_date', reportDate).maybeSingle(),
-      supabase.from('fiege_hourly_data').select('*').eq('report_date', reportDate).order('hour_index'),
-      supabase.from('fiege_leaderboard_entries').select('*').eq('report_date', reportDate).order('rank'),
-      supabase.from('fiege_tracking_info').select('*').eq('report_date', reportDate).maybeSingle(),
-      supabase.from('fiege_tracking_rows').select('*').eq('report_date', reportDate).order('hour_index'),
-    ])
-    setDay((dayRes.data as ReportDay | null) ?? null)
-    setHourly((hourlyRes.data as HourlyRow[] | null) ?? [])
-    setLeaderboard((leaderboardRes.data as LeaderboardEntry[] | null) ?? [])
-    setTrackingInfo((trackingInfoRes.data as TrackingInfo | null) ?? emptyTrackingInfo(reportDate))
-    const trackingRowsByIndex = new Map(
-      ((trackingRowsRes.data as TrackingRow[] | null) ?? []).map((r) => [r.hour_index, r])
-    )
-    setTrackingRows(emptyTrackingRows(reportDate).map((row) => trackingRowsByIndex.get(row.hour_index) ?? row))
-    setLoading(false)
-  }, [reportDate])
+  const [loaded, setLoaded] = useState(() => new Set<string>())
 
   useEffect(() => {
-    setLoading(true)
-    load()
+    setDay(null)
+    setHourly([])
+    setLeaderboard([])
+    setTrackingInfo(emptyTrackingInfo(reportDate))
+    setTrackingRows(emptyTrackingRows(reportDate))
+    setLoaded(new Set())
 
-    // A single admin save can touch 45+ rows across these tables, firing
-    // that many separate postgres_changes events — debounce them into one
-    // reload instead of re-fetching everything per row.
-    let debounceId: ReturnType<typeof setTimeout> | null = null
-    const scheduleReload = () => {
-      if (debounceId) clearTimeout(debounceId)
-      debounceId = setTimeout(load, 400)
-    }
+    const markLoaded = (key: string) => setLoaded((prev) => new Set(prev).add(key))
 
-    const channel = supabase
-      .channel(`report-day-${reportDate}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'fiege_report_days', filter: `report_date=eq.${reportDate}` },
-        scheduleReload
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'fiege_hourly_data', filter: `report_date=eq.${reportDate}` },
-        scheduleReload
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'fiege_leaderboard_entries',
-          filter: `report_date=eq.${reportDate}`,
-        },
-        scheduleReload
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'fiege_tracking_info', filter: `report_date=eq.${reportDate}` },
-        scheduleReload
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'fiege_tracking_rows', filter: `report_date=eq.${reportDate}` },
-        scheduleReload
-      )
-      .subscribe()
-
-    // Safety net: on an always-on shop-floor screen, the realtime socket can
-    // drop silently (network blip, the display waking from sleep, the tab
-    // being throttled while idle) without the board noticing. A slow poll
-    // means it self-heals within a minute even if the push channel dies.
-    const pollId = setInterval(load, 60_000)
-
-    // Catch up immediately rather than waiting for the next poll tick when
-    // the screen/tab becomes visible again or the network comes back.
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') load()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('online', load)
+    const unsubDay = onSnapshot(doc(db, 'reportDays', reportDate), (snap) => {
+      setDay(snap.exists() ? (snap.data() as ReportDay) : null)
+      markLoaded('day')
+    })
+    const unsubHourly = onSnapshot(doc(db, 'hourlyData', reportDate), (snap) => {
+      setHourly(snap.exists() ? ((snap.data().rows as HourlyRow[]) ?? []) : [])
+      markLoaded('hourly')
+    })
+    const unsubLeaderboard = onSnapshot(doc(db, 'leaderboardEntries', reportDate), (snap) => {
+      setLeaderboard(snap.exists() ? ((snap.data().entries as LeaderboardEntry[]) ?? []) : [])
+      markLoaded('leaderboard')
+    })
+    const unsubTrackingInfo = onSnapshot(doc(db, 'trackingInfo', reportDate), (snap) => {
+      setTrackingInfo(snap.exists() ? (snap.data() as TrackingInfo) : emptyTrackingInfo(reportDate))
+      markLoaded('trackingInfo')
+    })
+    const unsubTrackingRows = onSnapshot(doc(db, 'trackingRows', reportDate), (snap) => {
+      setTrackingRows(snap.exists() ? ((snap.data().rows as TrackingRow[]) ?? []) : emptyTrackingRows(reportDate))
+      markLoaded('trackingRows')
+    })
 
     return () => {
-      if (debounceId) clearTimeout(debounceId)
-      clearInterval(pollId)
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('online', load)
-      supabase.removeChannel(channel)
+      unsubDay()
+      unsubHourly()
+      unsubLeaderboard()
+      unsubTrackingInfo()
+      unsubTrackingRows()
     }
-  }, [reportDate, load])
+  }, [reportDate])
 
-  return { day, hourly, leaderboard, trackingInfo, trackingRows, loading, refresh: load }
+  const loading = loaded.size < 5
+  return { day, hourly, leaderboard, trackingInfo, trackingRows, loading }
 }

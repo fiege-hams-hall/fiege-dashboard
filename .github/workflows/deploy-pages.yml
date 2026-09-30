@@ -27,12 +27,13 @@ jobs:
 
       - run: npm ci
 
-      # Supabase URL/anon key and the admin UI-gate password are loaded from the
-      # committed .env.production. None of these are truly secret: the anon key
-      # is a publishable key by design, and Vite inlines env vars into the built
-      # JS bundle regardless of where they come from, so a build secret would be
-      # just as visible to anyone who opens devtools. See README for the
-      # upgrade path (real Supabase Auth) if you want a non-public admin gate.
+      # Firebase config and the admin UI-gate password are loaded from the
+      # committed .env.production. None of these are truly secret: Firebase's
+      # client config is designed to be public (it's just a project pointer —
+      # Firestore security rules are what actually control access), and Vite
+      # inlines env vars into the built JS bundle regardless of where they come
+      # from, so a build secret would be just as visible to anyone who opens
+      # devtools.
       - run: npm run build
         env:
           GITHUB_PAGES: "true"
